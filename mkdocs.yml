@@ -1,0 +1,32 @@
+site_name: Spatpy Document
+
+plugins:
+  - search:
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+theme: 
+  name: material
+  custom_dir: docs/overrides
+
+extra_css:
+  - stylesheets/style.css
+
+nav:
+  - Home: index.md
+
+  # auto generate
+
+  - Controller:
+    - auth: controller/auth.md
+    - passcode_ctl: controller/passcode_ctl.md
+    - notice: controller/notice.md
+    - alignment_ctl: controller/alignment_ctl.md
+  - Datamanager:
+    - users: dataManager/users.md
+    - alignment_d: dataManager/alignment_d.md
+  - Api:
+    - alignment: api/alignment.md
