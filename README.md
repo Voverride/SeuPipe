@@ -27,7 +27,13 @@ To run **Spatpy**, you need to set up a Conda environment using the provided `en
 Once the environment is set up, you can run the web application using the following steps:
 
 1. Navigate to the project directory (where the `main.py` file is located).
-2. Run the app with custom parameters (host, port, debug mode) by executing the following command:
+2. Run the app with custom parameters:
+   * **host：**`127.0.0.1 (default)`
+   * **port:** `8088 (default)`
+   * **debug:** `False (default)`
+   * **use_reloader:** `True (default)`  
+
+   by executing the following command:
 
    ```bash
    python main.py --host <host_address> --port <port_number> --debug <True/False> --use_reloader <True/False>
@@ -36,10 +42,13 @@ Once the environment is set up, you can run the web application using the follow
    For example, to run the app on `127.0.0.1` at port `8088`:
 
    ```bash
-   python main.py --host 127.0.0.1 --port 8088
+   python main.py
    ```
-
-3. Once the app is running, open your web browser and navigate to:
+   to run the app on `192.168.60.31` at port `8888`:
+    ```bash
+   python main.py --port 8888 --host 192.168.60.31
+   ```
+1. Once the app is running, open your web browser and navigate to:
 
    ```
    http://127.0.0.1:8088

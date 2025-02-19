@@ -3,8 +3,9 @@ from dash.exceptions import PreventUpdate
 import feffery_antd_components as fac
 from controller.auth import verify_user
 import os
+import getpass
 
-username = os.getlogin()
+username = getpass.getuser()
 
 login_box = fac.AntdModal(
     [
