@@ -52,11 +52,21 @@ Once the environment is set up, you can run the web application using the follow
 
    You should now see the Spatpy interface.
 
-## Customization
-You can configure various aspects of the application by modifying the provided `main.py` file. The Dash framework allows for easy integration of client-side callbacks, layout customization, and error handling. For instance, error handling is managed through the `global_error_handler`, and user interactions are captured via JavaScript event listeners.
+## Project Documentation
 
-## License
-Spatpy is open-source and licensed under the MIT License.
+To view the project documentation, please refer to the following link: [Spatpy Document](#)
+
+## Updating the Documentation
+
+You can automatically update the project documentation by running:
+
+    python autodocs.py
+
+ This will regenerate the latest documentation based on your project files.
+
+You can start the project's online documentation with the following command:
+
+    mkdocs serve
 
 ## Contact
 For any issues or contributions, please contact us at: [ybzhou@seu.edu.cn](ybzhou@seu.edu.cn)
