@@ -1,6 +1,7 @@
 from tinydb import TinyDB
 from tinydb import Query
 from .alignment_d import alidata
+import getpass
 import os
 
 directory = 'database/'
@@ -9,7 +10,7 @@ if not os.path.exists(directory):
 db = TinyDB('database/db.json')
 table = db.table('users')
 
-admin = os.getlogin()
+admin = getpass.getuser()
 
 q = Query()
 
