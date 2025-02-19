@@ -9,9 +9,8 @@
 - **Slice Alignment**: Helps in aligning tissue slices for accurate analysis.
 - **Interactive Web Interface**: Built with Dash, providing an intuitive and user-friendly experience.
   
-## Installation
+## Install Dependencies
 
-### 1. Install Dependencies
 To run **Spatpy**, you need to set up a Conda environment using the provided `environment.yml` file. This will ensure that all required dependencies are installed in an isolated environment.
 
 1. Clone or download the project repository.
@@ -22,11 +21,7 @@ To run **Spatpy**, you need to set up a Conda environment using the provided `en
 3. Activate the environment:
    
     ```
-   conda activate Spatpy
-### 2. Additional Dependencies
-If you prefer to manually install dependencies or need additional packages, you can install them using:
-
-    conda install <package_name>
+   source activate Spatpy
 ## Running the Application
 
 Once the environment is set up, you can run the web application using the following steps:
