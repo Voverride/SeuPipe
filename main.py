@@ -52,13 +52,14 @@ if __name__ == "__main__":
     parser.add_argument('--host', type=str, default="127.0.0.1", help="Host address to run the app on (default: 127.0.0.1).")
     parser.add_argument('--port', type=int, default=8088, help="Port to run the app on (default: 8088).")
     parser.add_argument('--debug', type=bool, default=False, help="Enable or disable debug mode (default: False).")
-    parser.add_argument('--use_reloader', type=bool, default=True, help="Enable or disable reloader (default: True).")
     
     args = parser.parse_args()
+    reload = True if args.debug else False
+
     app.run(
         host=args.host, 
         port=args.port,
         threaded=True,
         debug=args.debug, 
-        use_reloader=args.use_reloader
+        use_reloader=reload
     )

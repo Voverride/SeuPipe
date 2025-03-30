@@ -3,8 +3,11 @@ import feffery_antd_components as fac
 from dash.dependencies import Input, Output, State
 from dash import callback, set_props, no_update
 from dash.exceptions import PreventUpdate
+from dataManager.workspace import set_workpase
 from controller.auth import verify_modify_permission
+from controller.notice import set_aside_notice
 from controller.alignment_ctl import read_alignment_file, export_alignment_file
+from controller.annotation_ctl import read_annotask_refdata, read_annotask_querydata, export_annotation_file
 import os
 
 class FileSelecter:
@@ -17,7 +20,7 @@ class FileSelecter:
         self.replaceid = id+'6'
         self.cancleid = id+'7'
         self.filenameid = id+'8'
-
+        self.annotask = None # ref or query
         self.box = html.Div(
             [   
                 fac.AntdModal(
@@ -115,6 +118,7 @@ class FileSelecter:
             Output(self.boxid, 'visible', allow_duplicate=True),
             Input(self.replaceid, 'nClicks'),
             State(self.fpathid, 'value'),
+            State('main-title-header', 'children'), 
             running=[
                 (Output(self.replaceid, 'loading'), True, False),
                 (Output(self.cancleid, 'disabled'), True, False),
@@ -122,9 +126,13 @@ class FileSelecter:
             ],
             prevent_initial_call=True,
         )
-        def confirm_overwrite(nc, path):
+        def confirm_overwrite(nc, path, page):
             if nc:
-                status = export_alignment_file(path)
+                status = False
+                if page=='Alignment':
+                    status = export_alignment_file(path)
+                elif page=='Annotation':
+                    status = export_annotation_file(path)
                 if status:
                     return False, False
             raise PreventUpdate
@@ -161,7 +169,17 @@ class FileSelecter:
                         status = read_alignment_file(path)
                         if status:
                             set_props(self.boxid, {'visible':False})
-                else:
+                    if page=='Annotation':
+                        type = self.annotask
+                        status = False
+                        if type=='ref':
+                            status = read_annotask_refdata(path)
+                        elif type=='query':
+                            status = read_annotask_querydata(path)
+                        if status:
+                            set_props(self.boxid, {'visible':False})
+
+                elif title=='Export Data':
                     if page=='Alignment':
                         if os.path.exists(path):
                             visible = True
@@ -170,6 +188,19 @@ class FileSelecter:
                             status = export_alignment_file(path)
                             if status:
                                 set_props(self.boxid, {'visible':False})
+                    elif page=='Annotation':
+                        if os.path.exists(path):
+                            visible = True
+                            filename = path
+                        else:
+                            status = export_annotation_file(path)
+                            if status:
+                                set_props(self.boxid, {'visible':False})
+                elif title=='Select Workspace':
+                    set_workpase(path)
+                    set_props(self.boxid, {'visible':False})
+                    set_aside_notice('Spatpy workspace has been set to '+path+'SpatpyWorkspace', 'success', duration=20)
+                    
             return no_update, visible, filename
 
         @callback(
@@ -182,8 +213,12 @@ class FileSelecter:
                 if path.endswith('.h5ad'):
                     return False
                 return True
-            else:
+            elif title=='Import Data':
                 if os.path.exists(path) and path.endswith('.h5ad'):
+                    return False
+                return True
+            elif title=='Select Workspace':
+                if os.access(path, os.W_OK):
                     return False
                 return True
 
@@ -205,14 +240,17 @@ class FileSelecter:
             Output(self.tableid, 'data'), 
             Output(self.tableid, 'columns'), 
             Input(self.fpathid, 'value'),
+            Input(self.boxid, 'title'),
             State(self.tableid, 'columns'),
         )
-        def update_fileList_by_inputPath(path, columns):
+        def update_fileList_by_inputPath(path, title, columns):
             filename = os.path.basename(path).lower()
             folderpath = os.path.dirname(path)
             if os.access(folderpath, os.R_OK):
                 columns[0]['title']=folderpath
                 fileList = [file for file in os.listdir(folderpath) if filename in file.lower() and os.access(os.path.join(folderpath, file), os.R_OK)]
+                if title=='Select Workspace':
+                    fileList = [file for file in fileList if os.path.isdir(os.path.join(folderpath, file))]
                 fileList.sort()
                 data = [
                     {
@@ -230,6 +268,11 @@ class FileSelecter:
                 columns[0]['title']=''
                 return empty_fileList, columns
 
+    def set_annotask(self, type:str)->None:
+        self.annotask = type
+
+    def get_annotask(self)->str:
+        return self.annotask
 
     def get_boxid(self) -> str:
         return self.boxid
@@ -247,13 +290,26 @@ class FileSelecter:
         permission = verify_modify_permission()
         if permission:
             set_props(self.boxid, {'visible':True})
+            set_props(self.boxid, {'closable':True})
+            set_props(self.boxid, {'maskClosable':True})
+            set_props(self.boxid, {'keyboard':True})
             set_props(self.boxid, {'title':'Import Data'})
 
     def open_export_box(self):
         permission = verify_modify_permission()
         if permission:
             set_props(self.boxid, {'visible':True})
+            set_props(self.boxid, {'closable':True})
+            set_props(self.boxid, {'maskClosable':True})
+            set_props(self.boxid, {'keyboard':True})
             set_props(self.boxid, {'title':'Export Data'})
+    
+    def open_workspace_box(self):
+        set_props(self.boxid, {'visible':True})
+        set_props(self.boxid, {'closable':False})
+        set_props(self.boxid, {'maskClosable':False})
+        set_props(self.boxid, {'keyboard':False})
+        set_props(self.boxid, {'title':'Select Workspace'})
 
     def get_box(self) -> html.Div:
         return self.box

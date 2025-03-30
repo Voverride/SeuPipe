@@ -46,6 +46,7 @@ class AlignmentData:
         self._alistatus = {
             'creator':None,
             'thread':None,
+            'exception':None,
             'steps':{
                 1:{'running':False, 'complete':False, 'failed':False, 'experror':False},
                 2:{'running':False, 'complete':False, 'failed':False},
@@ -105,6 +106,7 @@ class AlignmentData:
         self._alistatus = {
             'creator':None,
             'thread':None,
+            'exception':None,
             'steps':{
                 1:{'running':False, 'complete':False, 'failed':False, 'experror':False},
                 2:{'running':False, 'complete':False, 'failed':False},
@@ -114,6 +116,11 @@ class AlignmentData:
             }
         }
 
+    def get_alistatus(self):
+        """
+        Returns the alignment status dictionary.
+        """
+        return self._alistatus
     def get_alistatus_thread(self):
         """
         Returns the thread identifier associated with the alignment process.

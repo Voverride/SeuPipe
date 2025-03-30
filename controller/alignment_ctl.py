@@ -17,8 +17,7 @@ import os
 graphStyle = {'display':'block', 'height':'90vh', 'width':'100%'}
 grapHidden = {'display':'none', 'height':'90vh', 'width':'100%'}
 
-
-def update_alignment_progress():
+def update_alignment_progress(progress_only:bool=False):
     steps = alidata.get_alistatus_steps()
     success = False
     for i in range(1, 6):
@@ -27,9 +26,12 @@ def update_alignment_progress():
             set_props(id, {'icon':'fc-high-priority'})
             set_props('alignment-interval', {'disabled':True})
             set_props('alignment-button-alignSlices', {'disabled':False})
-            set_props('alignment-popupcard-alignTask', {'closable':True})
             if i==1 and steps[1]['experror']:
                set_head_notice('Gene expression values cannot be negative. Please check and resubmit your data !', 'warning') 
+            alistatus = alidata.get_alistatus()
+            e = alistatus['exception']
+            if e:
+                set_props('alignment-button-showBug', dict(style={'backgroundColor':'#bb5548'}))
             return
         elif steps[i]['complete']:
             set_props(id, {'icon':'fc-ok'})
@@ -37,7 +39,7 @@ def update_alignment_progress():
                 set_props('alignment-alipercent', {'percent':100})
             if i==5:
                 success = True
-        else:
+        elif steps[i]['running']:
             set_props(id, {'icon':'antd-loading'})
             if i==3:
                 set_props('alignment-alipercent', {'percent':steps[3]['percent']})
@@ -46,21 +48,21 @@ def update_alignment_progress():
         alidata.set_alistatus_thread(thread=None)
         set_props('alignment-interval', {'disabled':True})
         set_props('alignment-button-alignSlices', {'disabled':False})
-        set_props('alignment-popupcard-alignTask', {'closable':True})
         set_props('alignment-paragraph-fieldnotice', {'style':{'marginTop':'-20px'}})
-        alidata.set_x_aligned_field('x_aligned')
-        alidata.set_y_aligned_field('y_aligned')
-        fig = alidata.plot_3d_scatter()
-        set_props('alignment-graph-aligned', {'figure':fig, 'style':graphStyle})
-        obs_fields = alidata.get_obs_fields()
-        genes = alidata.get_gene_list()
-        set_props('graphSetting-selecter-colorField', {'options':obs_fields, 'value':None})
-        set_props('graphSetting-selecter-colorGene', {'options':genes})
-        slices = alidata.get_slice_list()
-        if slices is not None:
-            set_props('graphSetting-selecter-activeSlice', {'options':slices})
-            set_props('graphSetting-selecter-referenceSlice', {'options':slices})
-            set_props('graphSetting-table-applySlices', {'data':[{'slices':slice} for slice in slices]})
+        if not progress_only:
+            alidata.set_x_aligned_field('x_aligned')
+            alidata.set_y_aligned_field('y_aligned')
+            fig = alidata.plot_3d_scatter()
+            set_props('alignment-graph-aligned', {'figure':fig, 'style':graphStyle})
+            obs_fields = alidata.get_obs_fields()
+            genes = alidata.get_gene_list()
+            set_props('graphSetting-selecter-colorField', {'options':obs_fields, 'value':None})
+            set_props('graphSetting-selecter-colorGene', {'options':genes})
+            slices = alidata.get_slice_list()
+            if slices is not None:
+                set_props('graphSetting-selecter-activeSlice', {'options':slices})
+                set_props('graphSetting-selecter-referenceSlice', {'options':slices})
+                set_props('graphSetting-table-applySlices', {'data':[{'slices':slice} for slice in slices]})
 
 def align_slices_with_paste(model:str, use_gpu:bool, creator:str)->None:
     """
@@ -86,23 +88,25 @@ def align_slices_with_paste(model:str, use_gpu:bool, creator:str)->None:
     z = alidata.get_zfield()
     alidata.reset_alistatus()
     alidata.set_alistatus_creator(creator)
-    steps = alidata.get_alistatus_steps()
+    alistatus = alidata.get_alistatus()
     if model == 'paste1':
-        thread = threading.Thread(target=paste1, args=(ad, x, y, z), kwargs={'use_gpu': use_gpu, 'steps': steps})
+        thread = threading.Thread(target=paste1, args=(ad, x, y, z), kwargs={'use_gpu': use_gpu, 'alistatus': alistatus})
     else:
-        thread = threading.Thread(target=paste2, args=(ad, x, y, z), kwargs={'steps': steps})
+        thread = threading.Thread(target=paste2, args=(ad, x, y, z), kwargs={'alistatus': alistatus})
     alidata.set_alistatus_thread(thread)
     set_props('alignment-interval', {'disabled':False})
+    reset_alistatus_progress(creator)
+    thread.start()
+def reset_alistatus_progress(creator:str)->None:
     set_props('alignment-button-alignSlices', {'disabled':True})
     set_props('alignment-timeline-creator', {'children':creator})
+    set_props('alignment-button-showBug', dict(style={'backgroundColor':'#bb5548', 'display':'none'}))
     set_props('alignment-alipercent', {'percent':0})
     for i in range(1, 6):
         id = 'step'+str(i)
         set_props(id, {'icon':'md-schedule'})
     set_props('alignment-paragraph-fieldnotice', {'style':{'marginTop':'-20px', 'display':'none'}})
     set_props('alignment-popupcard-alignTask', {'visible':True})
-    set_props('alignment-popupcard-alignTask', {'closable':False})
-    thread.start()
 
 def get_transformed_coord(usrname:str, slices:set, x='x_aligned', y='y_aligned', storeNewCoord=False)->dict:
         """

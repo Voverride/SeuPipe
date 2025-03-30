@@ -31,12 +31,11 @@ Once the environment is set up, you can run the web application using the follow
    * **host：**`127.0.0.1 (default)`
    * **port:** `8088 (default)`
    * **debug:** `False (default)`
-   * **use_reloader:** `True (default)`  
 
    by executing the following command:
 
    ```bash
-   python main.py --host <host_address> --port <port_number> --debug <True/False> --use_reloader <True/False>
+   python main.py --host <host_address> --port <port_number> --debug <True/False>
    ```
 
    For example, to run the app on `127.0.0.1` at port `8088`:

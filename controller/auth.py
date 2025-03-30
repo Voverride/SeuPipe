@@ -85,7 +85,6 @@ def verify_host()->None:
     Returns:
         None
     """
-    set_props('auth-interval', dict(interval=3600000))
     if not search_user(usrname=admin):
         add_user(admin, 2)
     
@@ -94,12 +93,19 @@ def verify_host()->None:
     
     if not user or user[0]['disabled']:
         set_props('login-box', dict(visible=True))
-    else:
+
+def restore_usrinfo()->None:
+    """
+    还原用户身份
+    """
+    host = get_host()
+    user = search_user(usrhost=host)
+    if user and not user[0]['disabled']:
         usrname = user[0]['usrname']
         userid = user[0].doc_id
         set_props('userid', dict(data=userid))
-        set_props('Spatpy', dict(style=None))
         set_props('main-title-username', dict(children=usrname))
+        set_props('Spatpy', dict(style=None))
 
 def logout(id:int)->None:
     """

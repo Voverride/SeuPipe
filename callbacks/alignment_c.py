@@ -3,6 +3,54 @@ from controller.alignment_ctl import *
 from dash.exceptions import PreventUpdate
 from dash import Input, Output, State, no_update, callback, Patch, ctx
 
+
+@callback(
+    Output('alignment-popupcard-alignTask', 'visible'),
+    Input('alignment-button-showProgress', 'nClicks')
+)
+def show_progress(nc):
+    """
+        显示切片对齐进度面板
+    """
+    update_alignment_progress(progress_only=True)
+    if nc:
+        return True
+    return no_update
+
+@callback(
+    Output('alignment-button-showBug', 'id'),
+    Input('alignment-button-showBug', 'nClicks'),
+    prevent_initial_call=True 
+)
+def show_bug(nc):
+    """
+    显示切片对齐期间的异常
+    """
+    alistatus = alidata.get_alistatus()
+    e = alistatus['exception']
+    if nc and e:
+        raise e
+    return no_update
+@callback(
+    Output('alignment-interval', 'disabled', allow_duplicate=True),
+    Input('alignment-event-loop', 'n_intervals'),
+    State('alignment-interval', 'disabled'),
+    prevent_initial_call=True
+)
+def annotation_event_loop(_, disabled):
+    """
+    当有用户开始训练任务时，其他用户实时同步状态
+    """
+    if disabled:
+        alistatus = alidata.get_alistatus()
+        thread = alistatus['thread']
+        creator = alistatus['creator']
+        if thread is None or not thread.is_alive():
+            return True
+        reset_alistatus_progress(creator)
+        return False
+    return no_update
+
 @callback(
     Input('alignment-interval', 'n_intervals')
 )
@@ -728,7 +776,7 @@ def show_adjusting_slice(activeSlice, referenceSlice, usrname, colorMode, field,
         raise PreventUpdate
     if activeSlice and referenceSlice and alidata.has_alifig():
         patch = Patch()
-        patch['layout']['scene']['camera']['eye'] = alidata.get_graph_view(activeSlice, referenceSlice)
+        # patch['layout']['scene']['camera']['eye'] = alidata.get_graph_view(activeSlice, referenceSlice)
         slices = alidata.get_slice_list()
         for i, slice in enumerate(slices):
             if slice==activeSlice or slice==referenceSlice:
@@ -877,11 +925,14 @@ def open_graph_setting_box(nc):
     raise PreventUpdate
 
 @callback(
-    Output('main-loading-area', 'children', allow_duplicate=True),
     Input('alignment-button-plotFig', 'nClicks'),
     State('alignment-select-x', 'value'),
     State('alignment-select-y', 'value'),
     State('alignment-select-z', 'value'),
+    running=[
+        (Output('alignment-button-plotFig', 'loading'), True, False),
+        (Output('alignment-button-plotFig', 'style'), {'backgroundColor':'#9a8fbd'}, {'backgroundColor':'#867ba9'}),
+    ],
     prevent_initial_call=True,
 )
 def alignment_plotFig(nClicks, x, y, z):
@@ -890,20 +941,14 @@ def alignment_plotFig(nClicks, x, y, z):
     """
     if nClicks:
         plot_origin_fig(x, y, z)
-    return no_update
-
 @callback(
-    # Output('main-loading-area', 'children', allow_duplicate=True),
-    Input('main-title-header', 'children'),
-    # prevent_initial_call=True
+    Input('init-restore-alignment', 'n_intervals'),
 )
-def update_init_component(head):
+def update_init_component(_):
     """
         恢复初始数据
     """
-    if head=='Alignment':
-        restore_initial_data()
-    # return no_update
+    restore_initial_data()
 
 
 @callback(

@@ -4,8 +4,11 @@ import pages.segmentation_p as segmentation
 import pages.annotation_p as annotation
 import pages.alignment_p as alignment
 import pages.passcode_p as passcode
+from pages.components.fileSelecter import fileSelecter
+from dataManager.workspace import *
 from controller.auth import *
 from dash import Patch
+
 
 menu = [
     {'title':'Segmentation', 'icon':'fc-mind-map', 'page':segmentation},
@@ -52,7 +55,7 @@ def confirm_logout(click, userid):
 @callback(
     Input('auth-interval', 'n_intervals')
 )
-def verify_usrhost(n):
+def verify_usrhost(_):
     verify_host()
 
 @callback(
@@ -105,3 +108,24 @@ def close_error_area(nc):
         pat['display'] = 'none'
         return pat
     raise PreventUpdate
+
+@callback(
+    Input('Spatpy', 'style'),
+)
+def select_workspace(style):
+    """
+    登录成功后弹出选择工作目录窗口
+    """
+    if style is None:
+        workspace = get_workspace()
+        if workspace is None:
+            fileSelecter.open_workspace_box()
+
+@callback(
+    Input('init-restore', 'n_intervals'),
+)
+def test(_):
+    """
+    登录成功后弹出选择工作目录窗口
+    """
+    restore_usrinfo()

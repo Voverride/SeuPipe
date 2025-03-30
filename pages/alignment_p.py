@@ -8,6 +8,9 @@ control_panel = html.Div(
     fac.AntdCard(
         fac.AntdSpace(
             [
+                dcc.Interval(id="init-restore-alignment", interval=1, max_intervals=1),
+                dcc.Interval(interval=1000, disabled=True, id='alignment-interval'),
+                dcc.Interval(id="alignment-event-loop", interval=1000),
                 fac.AntdButton(
                     'Import Data', 
                     type='primary',
@@ -92,13 +95,25 @@ control_panel = html.Div(
                         style={'width': '100%'},
                     ),
                 ),
-                fac.AntdButton(
-                    'Align Slices', 
-                    type='primary',
-                    id='alignment-button-alignSlices',
-                    block=True,
-                    icon=fac.AntdIcon(icon='pi-stack'),
-                    style={'backgroundColor':'#5F9EA0'}
+                fac.AntdSpace(
+                    [
+                        fac.AntdButton(
+                            'Align Slices', 
+                            type='primary',
+                            id='alignment-button-alignSlices',
+                            icon=fac.AntdIcon(icon='pi-stack'),
+                            style={'backgroundColor':'#5F9EA0', 'width':'160px'}
+                        ),
+                        fac.AntdTooltip(
+                            fac.AntdButton(
+                                type='primary',
+                                id='alignment-button-showProgress',
+                                icon=fac.AntdIcon(icon='antd-monitor'),
+                                style={'backgroundColor':'#5F9EA0'}
+                            ),
+                            title=fac.AntdText('show alignment progress'), color='white'
+                        ),
+                    ]
                 ),
                 fac.AntdButton(
                     'Graph Setting', 
@@ -131,7 +146,6 @@ control_panel = html.Div(
 content_panel = html.Div(
     [
         GraphSettingDrawer,
-        dcc.Interval(interval=1000, disabled=True, id='alignment-interval'),
         fac.AntdPopupCard(
             [
                 fac.AntdSpace(
@@ -141,11 +155,23 @@ content_panel = html.Div(
                                 {
                                     'content': html.Div(
                                         [
-                                            fac.AntdText('Creator:', strong=True),
-                                            fac.AntdText(type='success', id='alignment-timeline-creator'),  
-                                            # fac.AntdButton('Terminate', size='small', type='primary', icon=fac.AntdIcon(icon='md-power-settings-new'), style={'backgroundColor':'#a86965', 'marginLeft': 'auto'})
+                                            html.Div(
+                                                [
+                                                    fac.AntdText('Creator:', strong=True, style={'marginRight':'6px'}),
+                                                    fac.AntdText(type='success', id='alignment-timeline-creator'),  
+                                                ],
+                                                style={'marginRight':'20px'}
+                                            ),
+                                            fac.AntdButton(
+                                                'Show Bug',
+                                                id='alignment-button-showBug',
+                                                size='small', 
+                                                type='primary', 
+                                                icon=fac.AntdIcon(icon='antd-bug'), 
+                                                style={'backgroundColor':'#bb5548', 'display':'none'}
+                                            )           
                                         ],
-                                        style={'gap':'10px', 'width':'100%', 'display': 'flex'}
+                                        style={'width':'100%', 'display': 'flex'}
                                     ),
                                     'icon':fac.AntdAvatar(size='small'),
                                 },
@@ -204,7 +230,7 @@ content_panel = html.Div(
             id='alignment-popupcard-alignTask',
             title='Alignment Progress',
             width='500px',
-            closable=False,
+            closable=True,
             destroyOnClose=False,
             draggable=True,
             visible=False,

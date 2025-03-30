@@ -3,6 +3,32 @@ import traceback
 import json
 import feffery_antd_components as fac
 
+def set_aside_notice(content:str, type:str, duration:int=10,)->None:
+    """
+    Set the aside notice with specified content and type.
+
+    This function updates the 'aside-notice-area' component by setting its children
+    to an Ant Design Message component with the provided content and type.
+
+    Parameters:
+    - content (str): The text message to be displayed in the notice.
+    - type (str): The type of the notice, which determines its appearance (e.g.,success, error, warning, info).
+    - duration (int, optional): The duration in seconds for which the notice should be displayed. Defaults to 10.
+
+    Returns:
+    - None
+    """
+    dash.set_props('main-notice-area', {'children':
+            fac.AntdNotification(
+                message='Notification',
+                description=content,
+                type=type,
+                duration=duration,
+            )
+        }     
+    )
+
+
 def set_head_notice(content:str, type:str)->None:
     """
     Set the header notice with specified content and type.

@@ -36,10 +36,10 @@ main_layout = html.Div([
     dcc.Store(id="key-pressed-events"),
     dcc.Store(id="userid"),
     dcc.Location(id='main-refresh', refresh=True),
+    dcc.Interval(id="init-restore", interval=1, max_intervals=1),
     dcc.Interval(
         id='auth-interval',
-        interval=200,
-        n_intervals=0
+        interval=1000,
     ),
     fac.AntdSpin(
         html.Div(id='main-loading-area'), 
