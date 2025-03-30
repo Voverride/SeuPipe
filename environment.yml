@@ -45,10 +45,15 @@ dependencies:
   - xz=5.2.6=h166bdaf_0
   - zstd=1.5.6=ha6fb4c9_0
   - pip:
-      - anndata==0.10.9
+      - absl-py==2.2.1
+      - aiohappyeyeballs==2.6.1
+      - aiohttp==3.11.14
+      - aiosignal==1.3.2
+      - anndata==0.10.8
       - annotated-types==0.7.0
       - array-api-compat==1.9.1
       - asttokens==2.4.1
+      - async-timeout==5.0.1
       - attrs==24.2.0
       - babel==2.16.0
       - beautifulsoup4==4.12.3
@@ -57,10 +62,12 @@ dependencies:
       - certifi==2024.8.30
       - cffi==1.17.1
       - charset-normalizer==3.4.0
+      - chex==0.1.89
       - click==8.1.7
       - colorama==0.4.6
       - colorbrewer==0.2.0
       - comm==0.2.2
+      - contextlib2==21.6.0
       - contourpy==1.3.0
       - cryptography==43.0.3
       - cycler==0.12.1
@@ -79,8 +86,12 @@ dependencies:
       - decorator==5.1.1
       - dill==0.3.9
       - diskcache==5.6.3
+      - dnspython==2.7.0
+      - docrep==0.3.2
       - easydict==1.13
       - editorconfig==0.12.4
+      - einops==0.8.1
+      - etils==1.5.2
       - exceptiongroup==1.2.2
       - executing==2.1.0
       - fastjsonschema==2.20.0
@@ -88,8 +99,11 @@ dependencies:
       - filelock==3.16.1
       - flask==3.0.3
       - flask-caching==2.3.0
+      - flax==0.8.5
       - fonttools==4.54.1
+      - frozenlist==1.5.0
       - fsspec==2024.10.0
+      - future==1.0.0
       - get-annotations==0.1.2
       - ghp-import==2.1.0
       - glob2==0.7
@@ -97,6 +111,8 @@ dependencies:
       - h11==0.14.0
       - h5py==3.12.1
       - harmonypy==0.0.6
+      - humanize==4.12.2
+      - hyperopt==0.1.2
       - idna==3.10
       - igraph==0.11.8
       - imageio==2.36.0
@@ -106,6 +122,8 @@ dependencies:
       - ipykernel==6.29.5
       - ipython==8.18.1
       - itsdangerous==2.2.0
+      - jax==0.4.30
+      - jaxlib==0.4.30
       - jedi==0.19.1
       - jinja2==3.1.4
       - joblib==1.4.2
@@ -117,12 +135,16 @@ dependencies:
       - kiwisolver==1.4.7
       - lazy-loader==0.4
       - legacy-api-wrap==1.4
+      - lightning==2.1.4
+      - lightning-utilities==0.14.2
       - llvmlite==0.43.0
       - lxml==5.3.0
       - markdown==3.7
+      - markdown-it-py==3.0.0
       - markupsafe==3.0.2
       - matplotlib==3.9.2
       - matplotlib-inline==0.1.7
+      - mdurl==0.1.2
       - mergedeep==1.3.4
       - mkdocs==1.6.1
       - mkdocs-autorefs==1.2.0
@@ -131,8 +153,14 @@ dependencies:
       - mkdocs-material-extensions==1.3.1
       - mkdocstrings==0.27.0
       - mkdocstrings-python==1.13.0
+      - ml-collections==0.1.1
+      - ml-dtypes==0.5.1
       - more-itertools==10.5.0
       - mpmath==1.3.0
+      - msgpack==1.1.0
+      - mudata==0.2.4
+      - multidict==6.2.0
+      - multipledispatch==1.0.0
       - multiprocess==0.70.17
       - natsort==8.4.0
       - nbformat==5.10.4
@@ -140,8 +168,10 @@ dependencies:
       - networkx==2.8
       - numba==0.60.0
       - numpy==1.26.4
+      - numpyro==0.18.0
       - nvidia-cublas-cu12==12.4.5.8
       - nvidia-cuda-cupti-cu12==12.4.127
+      - nvidia-cuda-nvcc-cu12==12.8.93
       - nvidia-cuda-nvrtc-cu12==12.4.127
       - nvidia-cuda-runtime-cu12==12.4.127
       - nvidia-cudnn-cu12==9.1.0.70
@@ -153,6 +183,9 @@ dependencies:
       - nvidia-nvjitlink-cu12==12.4.127
       - nvidia-nvtx-cu12==12.4.127
       - opencv-python==4.10.0.84
+      - opt-einsum==3.4.0
+      - optax==0.2.4
+      - orbax-checkpoint==0.6.4
       - orjson==3.10.14
       - outcome==1.3.0.post0
       - packaging==24.1
@@ -173,6 +206,8 @@ dependencies:
       - pluggy==1.5.0
       - pot==0.9.1
       - prompt-toolkit==3.0.48
+      - propcache==0.3.1
+      - protobuf==6.30.2
       - psutil==6.1.0
       - ptyprocess==0.7.0
       - pure-eval==0.2.3
@@ -181,13 +216,17 @@ dependencies:
       - pydantic-core==2.23.4
       - pygments==2.18.0
       - pymdown-extensions==10.7.1
+      - pymongo==4.11.3
       - pynndescent==0.5.13
       - pyopenssl==24.2.1
       - pyparsing==3.2.0
+      - pyro-api==0.1.2
+      - pyro-ppl==1.9.1
       - pysocks==1.7.1
       - pytest==8.3.3
       - python-dateutil==2.9.0.post0
       - python-pam==2.0.2
+      - pytorch-lightning==2.5.1
       - pytz==2024.2
       - pyyaml==6.0.2
       - pyyaml-env-tag==0.1
@@ -196,13 +235,16 @@ dependencies:
       - regex==2024.11.6
       - requests==2.32.3
       - retrying==1.3.4
+      - rich==13.9.4
       - rpds-py==0.20.1
       - ruff==0.4.10
       - ruptures==1.1.8
       - scanpy==1.10.3
       - scikit-image==0.24.0
       - scikit-learn==1.5.2
+      - scikit-misc==0.3.1
       - scipy==1.12.0
+      - scvi-tools==1.1.6.post2
       - seaborn==0.13.2
       - selenium==4.2.0
       - session-info==1.0.0
@@ -215,14 +257,17 @@ dependencies:
       - stdlib-list==0.11.0
       - sympy==1.13.1
       - tenacity==9.0.0
+      - tensorstore==0.1.69
       - texttable==1.7.0
       - threadpoolctl==3.5.0
       - tifffile==2024.8.30
       - tiktoken==0.8.0
       - tinydb==4.8.2
       - tomli==2.0.2
+      - toolz==1.0.0
       - torch==2.5.1
       - torchaudio==2.5.1
+      - torchmetrics==1.7.0
       - torchvision==0.20.1
       - tornado==6.4.1
       - tqdm==4.66.6
@@ -241,4 +286,6 @@ dependencies:
       - webcolors==24.8.0
       - werkzeug==3.0.6
       - wsproto==1.2.0
+      - xlrd==2.0.1
+      - yarl==1.18.3
       - zipp==3.20.2
