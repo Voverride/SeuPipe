@@ -14,6 +14,9 @@ import pandas as pd
 import scvi
 import os
 
+BATCH_KEY = 'SeuPipe_Batch'
+DEGCOUNT_KEY = 'SeuPipe_DegCount'
+
 def scvi_annotation(refdata, querydata, label_field, rm_mt, rm_ribo, rm_hb, use_hvg, n_layers, n_hiddens, n_latent, epochs, batch_size, dropout, annData):
     """
     执行细胞注释程序
@@ -77,14 +80,14 @@ def scvi_preprocessing(adata_ref, adata_query, rm_mt, rm_ribo, rm_hb, use_hvg):
     adata_query = adata_query[:, common_genes]
     adata_ref = filter_genes(adata_ref, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
     adata_query = filter_genes(adata_query, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
-    adata_ref.obs["spatpy_batch"] = "ref"
-    adata_query.obs["spatpy_batch"] = "query"
+    adata_ref.obs[BATCH_KEY] = "ref"
+    adata_query.obs[BATCH_KEY] = "query"
     adata_combined = anndata.concat(
         [adata_ref, adata_query],
         axis=0,                  
         join="outer",
         merge="unique",       
-        label="spatpy_batch",
+        label=BATCH_KEY,
         keys=["ref", "query"]
     )
     if use_hvg:
@@ -93,7 +96,7 @@ def scvi_preprocessing(adata_ref, adata_query, rm_mt, rm_ribo, rm_hb, use_hvg):
             flavor="seurat_v3",
             n_top_genes=2000,
             layer="counts",
-            batch_key="spatpy_batch",
+            batch_key=BATCH_KEY,
             subset=True
         )
     return adata_combined
@@ -104,7 +107,7 @@ def get_scvi_latent(adata_combined, n_layers, n_hiddens, n_latent, epochs, batch
     steps = annstatus['steps']
     scvi.model.SCVI.setup_anndata(
         adata_combined,
-        batch_key="spatpy_batch",
+        batch_key=BATCH_KEY,
         layer="counts"
     )
 
@@ -233,10 +236,10 @@ def annotation_with_scvi_latend(adata, label_field):
     """
     对查询数据进行注释
     """
-    latent_ref = adata[adata.obs["spatpy_batch"] == 'ref'].obsm["X_scVI"]
-    labels_ref = adata[adata.obs["spatpy_batch"] == 'ref'].obs[label_field]
-    latent_query = adata[adata.obs["spatpy_batch"] == 'query'].obsm["X_scVI"]
-    adata_query = adata[adata.obs["spatpy_batch"] == 'query'].copy()
+    latent_ref = adata[adata.obs[BATCH_KEY] == 'ref'].obsm["X_scVI"]
+    labels_ref = adata[adata.obs[BATCH_KEY] == 'ref'].obs[label_field]
+    latent_query = adata[adata.obs[BATCH_KEY] == 'query'].obsm["X_scVI"]
+    adata_query = adata[adata.obs[BATCH_KEY] == 'query'].copy()
     estimators = [
         ("knn", KNeighborsClassifier(n_neighbors=15, weights="distance", metric="cosine")),
         ("svm", SVC(probability=True, class_weight="balanced")),
@@ -337,16 +340,16 @@ def get_diffgene_heatmap(adata_ori, label_field):
     warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
     adata = adata_ori.copy()
     cache_raw(adata)
-    adata.layers['spatpy_deg_count'] = adata.layers['counts'].copy()
-    sc.pp.normalize_total(adata, target_sum=1e4, layer='spatpy_deg_count')
-    sc.pp.log1p(adata, layer='spatpy_deg_count')
+    adata.layers[DEGCOUNT_KEY] = adata.layers['counts'].copy()
+    sc.pp.normalize_total(adata, target_sum=1e4, layer=DEGCOUNT_KEY)
+    sc.pp.log1p(adata, layer=DEGCOUNT_KEY)
     celltype_counts = adata.obs[label_field].value_counts()
     valid_celltypes = celltype_counts[celltype_counts >= 2].index.tolist()
     adata_filtered = adata[adata.obs[label_field].isin(valid_celltypes)].copy()
     sc.tl.rank_genes_groups(
         adata_filtered,
         groupby=label_field,
-        layer='spatpy_deg_count', 
+        layer=DEGCOUNT_KEY, 
         method='t-test',
         n_genes=2000,
         use_raw=False
@@ -361,7 +364,7 @@ def get_diffgene_heatmap(adata_ori, label_field):
 
     def get_mean_expression(celltype, gene):
         adtmp = adata_filtered[adata_filtered.obs[label_field] == celltype, gene]
-        mean_exp = np.mean(adtmp.layers['spatpy_deg_count'])
+        mean_exp = np.mean(adtmp.layers[DEGCOUNT_KEY])
         return mean_exp
 
     heatmap_data = [[get_mean_expression(cell, gene) for cell in celltypes]for gene in genes]

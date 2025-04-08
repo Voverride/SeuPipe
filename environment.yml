@@ -1,4 +1,4 @@
-name: Spatpy
+name: SeuPipe
 channels:
   - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/bioconda
   - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge

@@ -199,7 +199,7 @@ class FileSelecter:
                 elif title=='Select Workspace':
                     set_workpase(path)
                     set_props(self.boxid, {'visible':False})
-                    set_aside_notice('Spatpy workspace has been set to '+path+'SpatpyWorkspace', 'success', duration=20)
+                    set_aside_notice('SeuPipe workspace has been set to '+path+'SeuPipeWorkspace', 'success', duration=20)
                     
             return no_update, visible, filename
 

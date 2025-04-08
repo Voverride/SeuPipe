@@ -19,7 +19,7 @@ def set_workpase(workspace_path:str)->None:
     Returns:
         None
     """
-    workspace_path = os.path.join(workspace_path, 'SpatpyWorkspace')
+    workspace_path = os.path.join(workspace_path, 'SeuPipeWorkspace')
     if not os.path.exists(workspace_path):
         os.makedirs(workspace_path)
         annotation_path = os.path.join(workspace_path, 'Annotation')

@@ -1,7 +1,7 @@
-# Spatpy: Spatial Transcriptomics Analysis Tool
+# SeuPipe: An Interactive End-to-End Platform for High-Quality Spatial Transcriptomics Data Generation and 3D Visualization
 
 ## Overview
-**Spatpy** is a software tool designed for spatial transcriptomics analysis. It focuses on tasks such as cell segmentation, annotation, and slice alignment. This tool provides an interactive web interface for users to easily manage and visualize spatial transcriptomics data, making it a powerful resource for bioinformatics researchers working with spatial data.
+**SeuPipe** is a software tool designed for spatial transcriptomics analysis. It focuses on tasks such as cell segmentation, annotation, and slice alignment. This tool provides an interactive web interface for users to easily manage and visualize spatial transcriptomics data, making it a powerful resource for bioinformatics researchers working with spatial data.
 
 ## Features
 - **Cell Segmentation**: Automatically segments cells based on spatial data.
@@ -11,7 +11,7 @@
   
 ## Install Dependencies
 
-To run **Spatpy**, you need to set up a Conda environment using the provided `environment.yml` file. This will ensure that all required dependencies are installed in an isolated environment.
+To run **SeuPipe**, you need to set up a Conda environment using the provided `environment.yml` file. This will ensure that all required dependencies are installed in an isolated environment.
 
 1. Clone or download the project repository.
 2. In the project directory, create a Conda environment by running:
@@ -21,7 +21,7 @@ To run **Spatpy**, you need to set up a Conda environment using the provided `en
 3. Activate the environment:
    
     ```
-   source activate Spatpy
+   source activate SeuPipe
 ## Running the Application
 
 Once the environment is set up, you can run the web application using the following steps:
@@ -53,11 +53,11 @@ Once the environment is set up, you can run the web application using the follow
    http://127.0.0.1:8088
    ```
 
-   You should now see the Spatpy interface.
+   You should now see the SeuPipe interface.
 
 ## Project Documentation
 
-To view the project documentation, please refer to the following link: [Spatpy Document](#)
+To view the project documentation, please refer to the following link: [SeuPipe Document](#)
 
 ## Updating the Documentation
 

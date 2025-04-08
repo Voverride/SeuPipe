@@ -6,7 +6,7 @@ from dash.dependencies import Input, Output, State
 
 app = dash.Dash(
     __name__, 
-    title='Spatpy',
+    title='SeuPipe',
     update_title=None,
     suppress_callback_exceptions=True,
     on_error=global_error_handler,
@@ -42,8 +42,8 @@ app.clientside_callback(
         return dash_clientside.no_update;
     }
     """,
-    Output('Spatpy', 'id'),
-    Input('Spatpy', 'id'),
+    Output('SeuPipe', 'id'),
+    Input('SeuPipe', 'id'),
 )
 
 if __name__ == "__main__":

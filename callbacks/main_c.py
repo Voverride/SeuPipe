@@ -110,7 +110,7 @@ def close_error_area(nc):
     raise PreventUpdate
 
 @callback(
-    Input('Spatpy', 'style'),
+    Input('SeuPipe', 'style'),
 )
 def select_workspace(style):
     """

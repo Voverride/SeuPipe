@@ -64,7 +64,7 @@ def verify_user(usrname:str, password:str=None)->bool:
     if access:
         userid = user[0].doc_id
         set_props('userid', dict(data=userid))
-        set_props('Spatpy', dict(style=None))
+        set_props('SeuPipe', dict(style=None))
         set_props('login-box', dict(visible=False))
         set_props('main-title-username', dict(children=usrname))
         update_user_with_ids([userid], new_host=host)
@@ -105,7 +105,7 @@ def restore_usrinfo()->None:
         userid = user[0].doc_id
         set_props('userid', dict(data=userid))
         set_props('main-title-username', dict(children=usrname))
-        set_props('Spatpy', dict(style=None))
+        set_props('SeuPipe', dict(style=None))
 
 def logout(id:int)->None:
     """
