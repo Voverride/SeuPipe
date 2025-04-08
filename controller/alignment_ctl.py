@@ -12,7 +12,7 @@ from utils.colors import get_color_map, get_scale_colors
 from api.alignment import paste1, paste2, ensure_numeric_fields, validate_exp_data
 import os
 
-# alidata.test('/data1/zhouyb/public/data/BSAlignmentTestData/embryo1-2_z28-36_paste.h5ad', 'x', 'y', 'z')
+# alidata.test('/data1/zhouyb/public/data/stMouseEmbryo/embryo_1-2-E7.75_min400_Ann_HC0.5.h5ad', 'x', 'y', 'z', 'x', 'y')
 
 graphStyle = {'display':'block', 'height':'90vh', 'width':'100%'}
 grapHidden = {'display':'none', 'height':'90vh', 'width':'100%'}
@@ -297,7 +297,7 @@ def set_color_bygene(patch:Patch, gene:str, sliceList:list, colorType='C1')->Non
         idx = alidata.get_slice_index(slice)
         colorList = None
         obsIndex = aliFig['data'][idx]['customdata'].flatten()
-        geneExp = np.array(ad[obsIndex, gene].X).flatten()
+        geneExp = ad[obsIndex, gene].X
         colorList = get_scale_colors(geneExp, minValue, maxValue, colorType=colorType)
         if colorList==None:
             patch['data'][idx]['marker']['color'] = aliFig['data'][idx]['marker']['color']

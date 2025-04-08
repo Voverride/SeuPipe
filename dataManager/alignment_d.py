@@ -148,7 +148,7 @@ class AlignmentData:
         """
         return self._alistatus['steps']
     
-    def test(self, fpath:str, xfield:str, yfield:str, zfield:str)->None:
+    def test(self, fpath:str, xfield:str, yfield:str, zfield:str, x_aligned:str, y_aligned:str)->None:
         """
             A test function to initialize the class with a given AnnData file and fields for x, y, and z axes.
 
@@ -165,8 +165,8 @@ class AlignmentData:
         self.set_yfield(yfield)
         self.set_zfield(zfield)
         self.plot_3d_scatter(origin_fig=True)
-        self.set_x_aligned_field('x_aligned')
-        self.set_y_aligned_field('y_aligned')
+        self.set_x_aligned_field(x_aligned)
+        self.set_y_aligned_field(y_aligned)
         self.plot_3d_scatter()
 
     def reset_props(self)->None:
@@ -213,14 +213,16 @@ class AlignmentData:
         z_column = self._zfield
         activeObs = adata[adata.obs[z_column]==activeSlice].obs
         referenceObs = adata[adata.obs[z_column]==referenceSlice].obs
-        act_x_min = np.min(activeObs['x_aligned'])
-        act_x_max = np.max(activeObs['x_aligned'])
-        ref_x_min = np.min(referenceObs['x_aligned'])
-        ref_x_max = np.max(referenceObs['x_aligned'])
-        act_y_min = np.min(activeObs['y_aligned'])
-        act_y_max = np.max(activeObs['y_aligned'])
-        ref_y_min = np.min(referenceObs['y_aligned'])
-        ref_y_max = np.max(referenceObs['y_aligned'])
+        x_aligned = self.get_x_aligned_field()
+        y_aligned = self.get_y_aligned_field()
+        act_x_min = np.min(activeObs[x_aligned])
+        act_x_max = np.max(activeObs[x_aligned])
+        ref_x_min = np.min(referenceObs[x_aligned])
+        ref_x_max = np.max(referenceObs[x_aligned])
+        act_y_min = np.min(activeObs[y_aligned])
+        act_y_max = np.max(activeObs[y_aligned])
+        ref_y_min = np.min(referenceObs[y_aligned])
+        ref_y_max = np.max(referenceObs[y_aligned])
         step = np.mean([
             abs(act_x_min-ref_x_min), 
             abs(act_x_max-ref_x_max), 

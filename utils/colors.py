@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import issparse
 
 def hex_to_rgb(hex_color):
     """将16进制颜色转换为RGB元组"""
@@ -63,13 +64,36 @@ def get_color_map(labels, type=None):
     colorMap = {label:colorList[i%len(colorList)] for i, label in enumerate(labels)}
     return colorMap
 
-def get_scale_colors(nums:list, minValue, maxValue, colorType='blue', rangeDist=[0, 0.25, 0.75, 1]):
+def ensure_1d_array(matrix_data):
+    """
+    将输入的稀疏矩阵或稠密矩阵统一转换为一维numpy数组
+    
+    参数:
+        matrix_data: 可以是scipy稀疏矩阵、numpy数组或类似数组结构
+        
+    返回:
+        np.ndarray: 一维numpy数组
+    """
+    if issparse(matrix_data):
+        return matrix_data.toarray().flatten()
+    elif isinstance(matrix_data, np.ndarray):
+        return matrix_data.flatten()
+    elif isinstance(matrix_data, (list, tuple)):
+        return np.array(matrix_data).flatten()
+    else:
+        try:
+            return np.asarray(matrix_data).flatten()
+        except Exception as e:
+            raise e
+
+def get_scale_colors(nums, minValue, maxValue, colorType='blue', rangeDist=[0, 0.25, 0.75, 1]):
     """
         对于给定数组返回对应连续变化颜色值
         nums: 数据列表
         colorType: 可选值 red, green, blue, 默认值 blue
         rangeDist: 对应颜色的变化区间, 默认值[0, 0.25, 0.75, 1]
     """
+    nums = ensure_1d_array(nums)
     colors = blueScaleColor
     if colorType=='red':
         colors = redScaleColor

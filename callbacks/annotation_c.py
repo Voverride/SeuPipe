@@ -45,7 +45,7 @@ def slice_graph(nc, values):
     if result is None:
         return no_update
     min_value, max_value = values
-    fig = plot_3d_scatter(min_z=min_value, max_z=max_value)
+    fig = plot_3d_scatter(annData, min_z=min_value, max_z=max_value)
     return fig
 
 @callback(
