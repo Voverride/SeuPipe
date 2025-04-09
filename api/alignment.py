@@ -4,9 +4,11 @@ import pandas as pd
 from anndata import AnnData
 import numpy as np
 from typing import Tuple
+import scanpy as sc
 import torch
 import ot
 
+COUNTS_KEY = 'SeuPipe_Alignment_Counts'
 def paste1(adata:AnnData, x_field:str, y_field:str, z_field:str, use_gpu:bool=False, use_rep:str=None, alistatus:dict=None)->bool:
     """
     Align spatial slices of data using the PASTE1 algorithm. This function takes in a single AnnData object,
@@ -109,7 +111,8 @@ def paste1(adata:AnnData, x_field:str, y_field:str, z_field:str, use_gpu:bool=Fa
         else:
             raise e
     set_steps_status(steps, 5, 'complete', True)
-
+    if COUNTS_KEY in adata.obsm:
+        del adata.obsm[COUNTS_KEY]
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
@@ -219,6 +222,8 @@ def paste2(adata:AnnData, x_field:str, y_field:str, z_field:str, use_rep:str=Non
         else:
             raise e
     set_steps_status(steps, 5, 'complete', True)
+    if COUNTS_KEY in adata.obsm:
+        del adata.obsm[COUNTS_KEY]
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     return True
@@ -235,15 +240,20 @@ def validate_exp_data(adata:AnnData)->Tuple[str, bool]:
             - field (str): The name of the field ('counts_for_paste') if data is valid.
             - bool: True if the data is valid (non-negative), False otherwise.
     """
-    field = 'counts_for_paste'
+    field = COUNTS_KEY
+    X_backend = adata.X
+    if adata.raw is not None and adata.raw.X is not None:
+        adata.X = adata.raw.X.copy()
+    elif 'counts' in adata.layers:
+        adata.X = adata.layers["counts"].copy()
+    else:
+        adata.X = adata.X.copy()
+    sc.pp.normalize_total(adata, target_sum=1e4) 
     min_exp = np.min(adata.X)
+    adata.obsm[field] = adata.X
+    adata.X = X_backend
     if min_exp>=0:
-        return None, True
-    if adata.raw!=None:
-        min_exp = np.min(adata.raw.X)
-        if min_exp>=0:
-            adata.obsm[field] = adata.raw.X
-            return field, True
+        return field, True
     return None, False
 
 def ensure_numeric_fields(adata:AnnData, x_field:str, y_field:str, z_field:str):
