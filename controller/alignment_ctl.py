@@ -10,6 +10,7 @@ import numpy as np
 from dash import set_props, html, Patch
 from utils.colors import get_color_map, get_scale_colors
 from api.alignment import paste1, paste2, ensure_numeric_fields, validate_exp_data
+# from utils.resetgpu import reset_gpu_memory
 import os
 
 # alidata.test('/data1/zhouyb/public/data/stMouseEmbryo/embryo_1-2-E7.75_min400_Ann_HC0.5.h5ad', 'x', 'y', 'z', 'x', 'y')
@@ -50,9 +51,10 @@ def update_alignment_progress(progress_only:bool=False):
         set_props('alignment-button-alignSlices', {'disabled':False})
         set_props('alignment-paragraph-fieldnotice', {'style':{'marginTop':'-20px'}})
         if not progress_only:
-            alidata.set_x_aligned_field('x_aligned')
-            alidata.set_y_aligned_field('y_aligned')
-            fig = alidata.plot_3d_scatter()
+            # alidata.set_x_aligned_field('x_aligned')
+            # alidata.set_y_aligned_field('y_aligned')
+            # fig = alidata.plot_3d_scatter()
+            fig = alidata.get_alifig()
             set_props('alignment-graph-aligned', {'figure':fig, 'style':graphStyle})
             obs_fields = alidata.get_obs_fields()
             genes = alidata.get_gene_list()
@@ -63,6 +65,7 @@ def update_alignment_progress(progress_only:bool=False):
                 set_props('graphSetting-selecter-activeSlice', {'options':slices})
                 set_props('graphSetting-selecter-referenceSlice', {'options':slices})
                 set_props('graphSetting-table-applySlices', {'data':[{'slices':slice} for slice in slices]})
+        # reset_gpu_memory()
 
 def align_slices_with_paste(model:str, use_gpu:bool, creator:str)->None:
     """

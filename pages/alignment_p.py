@@ -15,7 +15,7 @@ control_panel = html.Div(
                     'Import Data', 
                     type='primary',
                     id='alignment-button-importData',
-                    icon=fac.AntdIcon(icon='antd-cloud-upload'),
+                    icon=fac.AntdIcon(icon='antd-cloud-download'),
                     style={'backgroundColor':'#698aab', 'width': '100%'}
                 ),
                 fac.AntdDivider(),
@@ -263,5 +263,5 @@ content_panel = html.Div(
         )
     ],
     id='alignment-content_panel',
-    style={'width':'95%', 'height':'100%'},
+    style={'width':'calc(100vw - 480px)', 'height':'100%'},
 )

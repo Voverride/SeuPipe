@@ -162,5 +162,5 @@ content_panel = html.Div(
         )
     ],
     id='annotation-content-panel',
-    style={'width':'95%', 'height':'100%', 'position':'relative'}
+    style={'width':'calc(100vw - 480px)', 'height':'100%', 'position':'relative'}
 )

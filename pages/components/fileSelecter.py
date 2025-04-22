@@ -8,6 +8,7 @@ from controller.auth import verify_modify_permission
 from controller.notice import set_aside_notice
 from controller.alignment_ctl import read_alignment_file, export_alignment_file
 from controller.annotation_ctl import read_annotask_refdata, read_annotask_querydata, export_annotation_file
+from controller.segmentation_ctl import read_tasklist_file
 import os
 
 class FileSelecter:
@@ -32,6 +33,7 @@ class FileSelecter:
                                         id=self.fpathid,
                                         value='/',
                                         persistence=True,
+                                        debounceWait=300,
                                         placeholder='please input file path',
                                         prefix=fac.AntdIcon(icon='di-linux'),
                                         style={'width': '660px'},
@@ -178,6 +180,10 @@ class FileSelecter:
                             status = read_annotask_querydata(path)
                         if status:
                             set_props(self.boxid, {'visible':False})
+                    if page=='Segmentation':
+                        success = read_tasklist_file(path)
+                        if success:
+                            self.close_box()
 
                 elif title=='Export Data':
                     if page=='Alignment':
@@ -199,7 +205,7 @@ class FileSelecter:
                 elif title=='Select Workspace':
                     set_workpase(path)
                     set_props(self.boxid, {'visible':False})
-                    set_aside_notice('SeuPipe workspace has been set to '+path+'SeuPipeWorkspace', 'success', duration=20)
+                    set_aside_notice('Notification', 'SeuPipe workspace has been set to '+os.path.join(path, 'SeuPipeWorkspace'), 'success', duration=20)
                     
             return no_update, visible, filename
 
@@ -207,14 +213,18 @@ class FileSelecter:
             Output(self.submitid, 'disabled'), 
             Input(self.fpathid, 'value'),
             State(self.boxid, 'title'),
+            State('main-title-header', 'children'), 
         )
-        def update_submitButton_by_filePath(path:str, title:str):
+        def update_submitButton_by_filePath(path:str, title:str, header:str):
             if title=='Export Data':
                 if path.endswith('.h5ad'):
                     return False
                 return True
             elif title=='Import Data':
-                if os.path.exists(path) and path.endswith('.h5ad'):
+                if header=='Segmentation':
+                    if os.path.isfile(path):
+                        return False
+                elif os.path.exists(path) and path.endswith('.h5ad'):
                     return False
                 return True
             elif title=='Select Workspace':
@@ -294,6 +304,9 @@ class FileSelecter:
             set_props(self.boxid, {'maskClosable':True})
             set_props(self.boxid, {'keyboard':True})
             set_props(self.boxid, {'title':'Import Data'})
+
+    def close_box(self):
+        set_props(self.boxid, {'visible':False})
 
     def open_export_box(self):
         permission = verify_modify_permission()

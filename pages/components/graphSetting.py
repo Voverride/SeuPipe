@@ -207,6 +207,7 @@ GraphSettingDrawer = fac.AntdDrawer(
                                 id='graphSetting-selecter-colorField',
                                 optionFilterMode='regex',
                                 allowClear=False,
+                                debounceWait=300,
                                 locale='en-us',
                                 disabled=True,
                                 style={'width': '122px'},
@@ -218,6 +219,7 @@ GraphSettingDrawer = fac.AntdDrawer(
                                 placeholder='Pick Genes',
                                 id='graphSetting-selecter-colorGene',
                                 allowClear=False,
+                                debounceWait=300,
                                 optionFilterMode='regex',
                                 locale='en-us',
                                 disabled=True,
@@ -265,7 +267,7 @@ GraphSettingDrawer = fac.AntdDrawer(
                                         placeholder='Step Size',
                                         id = 'graphSetting-inputNum-stepSize',
                                         precision=5,
-                                        debounceWait=500,
+                                        debounceWait=300,
                                         style={'width': 126, 'margin-right':21},
                                 ),
                                 title=fac.AntdText('Step Size'), color='white'
@@ -310,7 +312,7 @@ GraphSettingDrawer = fac.AntdDrawer(
                                         placeholder='Rotation Angle',
                                         value = 5,
                                         precision=5,
-                                        debounceWait=500,
+                                        debounceWait=300,
                                         style={'width': 126, 'margin-right':21},
                                 ),
                                 title=fac.AntdText('Rotation Angle'), color='white'

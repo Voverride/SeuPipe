@@ -1,9 +1,10 @@
 import dash
 import traceback
 import json
+from dash import html
 import feffery_antd_components as fac
 
-def set_aside_notice(content:str, type:str, duration:int=10,)->None:
+def set_aside_notice(title:str, content:str, type:str, duration:int=10,)->None:
     """
     Set the aside notice with specified content and type.
 
@@ -20,10 +21,10 @@ def set_aside_notice(content:str, type:str, duration:int=10,)->None:
     """
     dash.set_props('main-notice-area', {'children':
             fac.AntdNotification(
-                message='Notification',
+                message=title,
                 description=content,
                 type=type,
-                duration=duration,
+                duration=duration
             )
         }     
     )

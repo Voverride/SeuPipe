@@ -9,6 +9,7 @@ from api.annotation import *
 import numpy as np
 from dataManager.workspace import get_annotation_workspace
 import plotly.graph_objects as go
+# from utils.resetgpu import reset_gpu_memory
 
 result_fig_style = {'width': '100%', 'height':'90%', 'margin':'auto'}
 heatmap_fig_style = {'width': '100%', 'height':'90%', 'margin':'auto'}
@@ -145,6 +146,8 @@ def update_annotation_progress():
         set_props('annotation-graph-queryumap', dict(style=queryumap_fig_style))
         set_props('annotation-graph-heatmap', dict(figure=heatmap_fig))
         set_props('annotation-graph-heatmap', dict(style=heatmap_fig_style))
+        # reset_gpu_memory()
+
         
 
 # def update_annotation_progress(epoch=None):

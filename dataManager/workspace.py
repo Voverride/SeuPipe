@@ -22,8 +22,6 @@ def set_workpase(workspace_path:str)->None:
     workspace_path = os.path.join(workspace_path, 'SeuPipeWorkspace')
     if not os.path.exists(workspace_path):
         os.makedirs(workspace_path)
-        annotation_path = os.path.join(workspace_path, 'Annotation')
-        os.makedirs(annotation_path)
 
     table.update({'workspace':workspace_path})
     
@@ -36,9 +34,23 @@ def get_workspace()->str:
     """
     workspace = table.all()[0]['workspace']
     if workspace is not None:
-        if not os.path.exists(workspace):
-            os.makedirs(workspace)
+        check_path(workspace)
     return workspace
-
 def get_annotation_workspace()->str:
-    return os.path.join(get_workspace(), 'Annotation')
+    path = os.path.join(get_workspace(), 'Annotation')
+    check_path(path)
+    return path
+
+def get_segmentation_workspace()->str:
+    path = os.path.join(get_workspace(), 'Segmentation')
+    check_path(path)
+    return path
+
+def get_cache_workspace()->str:
+    path = os.path.join(get_workspace(), 'Cache')
+    check_path(path)
+    return path
+
+def check_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)

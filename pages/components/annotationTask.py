@@ -13,7 +13,7 @@ row_left = html.Div(
                                 'Reference Data', 
                                 id='annotask-button-refdata',
                                 type='primary', 
-                                icon=fac.AntdIcon(icon='antd-cloud-upload'), 
+                                icon=fac.AntdIcon(icon='antd-cloud-download'), 
                                 style={'backgroundColor':'#5383c3','width':'90%'}
                             ),
                             fac.AntdTooltip(
@@ -21,10 +21,10 @@ row_left = html.Div(
                                     'Query Data', 
                                     id='annotask-button-querydata',
                                     type='primary', 
-                                    icon=fac.AntdIcon(icon='antd-cloud-upload'), 
+                                    icon=fac.AntdIcon(icon='antd-cloud-download'), 
                                     style={'backgroundColor':'#d0826c', 'width':'90%'}
                                 ), 
-                                title=fac.AntdText('⚠️Uploading a new file will overwrite the processed data. Remember to save your data before proceeding'), color='white'
+                                title=fac.AntdText('⚠️ Uploading a new file will overwrite the processed data. Remember to save your data before proceeding'), color='white'
                             )
                         ],
                         size='middle',

@@ -1,6 +1,18 @@
+import warnings
+from numba import errors
+import tensorflow as tf
+from tensorflow.python.ops.numpy_ops import np_config
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    tf.config.experimental.set_memory_growth(gpus[0], True)
+np_config.enable_numpy_behavior()
+warnings.filterwarnings("ignore", category=errors.NumbaWarning)
 import dash
 from pages.main_p import main_layout
 import argparse
+from controller.segmentation_ctl import parse_tasklist
+from flask import request
+from io import TextIOWrapper, BytesIO
 from controller.notice import global_error_handler
 from dash.dependencies import Input, Output, State
 
@@ -45,6 +57,21 @@ app.clientside_callback(
     Output('SeuPipe', 'id'),
     Input('SeuPipe', 'id'),
 )
+
+@app.server.route('/upload/', methods=['POST'])
+def upload():
+    '''
+    构建文件上传服务
+    :return:
+    '''
+    try:
+        file = request.files['file']
+        text_stream = TextIOWrapper(BytesIO(file.read()), encoding='utf-8')
+        lines = text_stream.readlines()
+        parse_tasklist(lines)
+    except Exception as e:
+        raise e
+    return {'filename': ''}
 
 if __name__ == "__main__":
 

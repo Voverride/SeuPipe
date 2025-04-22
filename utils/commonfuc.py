@@ -1,4 +1,23 @@
 import pandas as pd
+import traceback
+
+# def construct_exception(exc):
+#     """
+#     构造异常的详细文本描述
+#     """
+#     # exc_type = type(exc)
+#     # exc_value = exc
+#     # exc_traceback = exc.__traceback__
+    
+#     # full_traceback = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    
+#     # error_description = {
+#     #     'Exception Type': exc_type.__name__,
+#     #     'Error Message': str(exc_value),
+#     #     'Traceback': ''.join(full_traceback)
+#     # }
+#     # return error_description
+#     # return traceback.format_exc()
 
 def is_all_numeric(series)->bool:
     """

@@ -4,6 +4,7 @@ import pandas as pd
 from anndata import AnnData
 import numpy as np
 from typing import Tuple
+from dataManager.alignment_d import alidata
 import scanpy as sc
 import torch
 import ot
@@ -111,11 +112,13 @@ def paste1(adata:AnnData, x_field:str, y_field:str, z_field:str, use_gpu:bool=Fa
         else:
             raise e
     set_steps_status(steps, 5, 'complete', True)
+    alidata.set_x_aligned_field('x_aligned')
+    alidata.set_y_aligned_field('y_aligned')
+    alidata.plot_3d_scatter()
     if COUNTS_KEY in adata.obsm:
         del adata.obsm[COUNTS_KEY]
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-
     return True
 
 def paste2(adata:AnnData, x_field:str, y_field:str, z_field:str, use_rep:str=None, alistatus:dict=None)->bool:
@@ -222,6 +225,9 @@ def paste2(adata:AnnData, x_field:str, y_field:str, z_field:str, use_rep:str=Non
         else:
             raise e
     set_steps_status(steps, 5, 'complete', True)
+    alidata.set_x_aligned_field('x_aligned')
+    alidata.set_y_aligned_field('y_aligned')
+    alidata.plot_3d_scatter()
     if COUNTS_KEY in adata.obsm:
         del adata.obsm[COUNTS_KEY]
     if torch.cuda.is_available():

@@ -126,7 +126,6 @@ def update_annotation_status(_):
         return True
     return no_update
 
-
 @callback(
     Output('annotation-interval', 'disabled'),
     Input('anntask-button-train', 'nClicks'),
