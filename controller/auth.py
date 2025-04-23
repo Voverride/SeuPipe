@@ -4,7 +4,6 @@ from dash import set_props
 from flask import request
 from .notice import set_head_notice
 
-
 def verify_modify_permission()->bool:
     """
         Verifies whether the current user has permission to modify.

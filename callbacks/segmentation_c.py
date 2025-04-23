@@ -2,8 +2,6 @@ from controller.segmentation_ctl import *
 from dash import callback, Input, Output, State, no_update, Patch
 from pages.components.fileSelecter import fileSelecter
 from dash.exceptions import PreventUpdate
-
-
 @callback(
     Input('seg-button-showBug', 'nClicks'),
     State('seg-select-taskname', 'value'),
