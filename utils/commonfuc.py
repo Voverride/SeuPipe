@@ -1,23 +1,34 @@
 import pandas as pd
-import traceback
+from PIL import Image
+import plotly.express as px
+import io
+import base64
+import numpy as np
 
-# def construct_exception(exc):
-#     """
-#     构造异常的详细文本描述
-#     """
-#     # exc_type = type(exc)
-#     # exc_value = exc
-#     # exc_traceback = exc.__traceback__
-    
-#     # full_traceback = traceback.format_exception(exc_type, exc_value, exc_traceback)
-    
-#     # error_description = {
-#     #     'Exception Type': exc_type.__name__,
-#     #     'Error Message': str(exc_value),
-#     #     'Traceback': ''.join(full_traceback)
-#     # }
-#     # return error_description
-#     # return traceback.format_exc()
+def get_imgfig_withplotly(img_array, title=None):
+    """
+    基于图像矩阵绘制交互图形
+    """
+    fig = px.imshow(img_array)
+    fig.update_layout(
+        autosize=True,
+        title=dict(
+            text=title,
+            x=0.5,
+        ),
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+    )
+    return fig
+
+def array_to_base64(img_array):
+    """将 NumPy 数组转换为 Base64 编码的 PNG 图片"""
+    pil_img = Image.fromarray(img_array.astype(np.uint8))
+    buffer = io.BytesIO()
+    pil_img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
 def is_all_numeric(series)->bool:
     """

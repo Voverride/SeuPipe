@@ -170,4 +170,43 @@ COLORS_60 = [
     "#20B2AA", "#a23919", "#9b7d24", "#443645", "#39607d", "#e6dbcb", "#355b6e", "#423e55", "#b0b173", "#376d78", 
     "#2d5aa2", "#486343", "#552141", "#4682B4"]
 
+fluorescent_colors = [
+    '#00FFFF',  # 青色 (Cyan) - 高亮
+    '#FF00FF',  # 品红 (Magenta) - 高亮  
+    '#FFFF00',  # 黄色 (Yellow) - 高亮
+    '#00FF00',  # 荧光绿 (Lime)
+    '#FF5E00',  # 荧光橙
+    '#FF1493',  # 深粉色 (Deep Pink)
+    '#7FFF00',  # 查特绿 (Chartreuse)
+    '#00BFFF',  # 深天蓝 (Deep Sky Blue)
+    '#FFD700',  # 金色 (Gold)
+    '#DA70D6'   # 兰花紫 (Orchid)
+]
+
+dark_bg_colors = [
+    '#FF0000',  # 纯红
+    '#00FF00',  # 纯绿
+    '#0000FF',  # 纯蓝
+    '#FFFFFF',  # 白色 (与染色区分)
+    '#FFA500',  # 橙色
+    '#800080',  # 紫色  
+    '#00FFFF',  # 青色
+    '#FF6347',  # 番茄红
+    '#7CFC00',  # 草坪绿
+    '#FFD700'   # 金色
+]
+
+scientific_colors = [
+    '#E6194B',  # 红色
+    '#3CB44B',  # 绿色  
+    '#4363D8',  # 蓝色
+    '#F58231',  # 橙色
+    '#911EB4',  # 紫色
+    '#46F0F0',  # 浅蓝  
+    '#F032E6',  # 紫红
+    '#BCF60C',  # 酸橙绿
+    '#FABEBE',  # 浅粉
+    '#008080'   # 蓝绿色 (Teal)
+]
+
 lightened_colors = lighten_colors(primaryColors)

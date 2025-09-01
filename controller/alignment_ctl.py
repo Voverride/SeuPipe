@@ -392,7 +392,7 @@ def get_below_slice(act_slice:float)->float:
 #         set_props('graphSetting-selecter-referenceSlice', {'options':slices})
 #         set_props('graphSetting-table-applySlices', {'data':[{'slices':slice} for slice in slices]})
 
-def plot_origin_fig(x:str, y:str, z:str):
+def plot_fig(x:str, y:str, z:str, modify=False):
     """
     Plot the original 3D figure using the provided x, y, z fields.
 
@@ -436,7 +436,25 @@ def plot_origin_fig(x:str, y:str, z:str):
         set_head_notice('The z field is not numeric !', 'warning')
         return
     fig = alidata.plot_3d_scatter(origin_fig=True)
-    set_props('alignment-graph-origion', {'figure':fig, 'style':graphStyle})
+    id = 'alignment-graph-origion'
+    
+    # 用于调试对齐程序，导入数据后直接执行手动对齐
+    if modify:
+        alidata.set_x_aligned_field(x)
+        alidata.set_y_aligned_field(y)
+        fig = alidata.plot_3d_scatter()
+        alidata.set_orifig(None)
+        id = 'alignment-graph-aligned'
+        obs_fields = alidata.get_obs_fields()
+        genes = alidata.get_gene_list()
+        set_props('graphSetting-selecter-colorField', {'options':obs_fields, 'value':None})
+        set_props('graphSetting-selecter-colorGene', {'options':genes})
+        slices = alidata.get_slice_list()
+        if slices is not None:
+            set_props('graphSetting-selecter-activeSlice', {'options':slices})
+            set_props('graphSetting-selecter-referenceSlice', {'options':slices})
+            set_props('graphSetting-table-applySlices', {'data':[{'slices':slice} for slice in slices]})
+    set_props(id, {'figure':fig, 'style':graphStyle})
 
 def check_orifig()->bool:
     """
@@ -573,4 +591,3 @@ def restore_initial_data()->None:
         set_props('alignment-interval', {'disabled':False})
         set_props('alignment-button-alignSlices', {'disabled':True})
         set_props('alignment-timeline-creator', {'children':creator})
-

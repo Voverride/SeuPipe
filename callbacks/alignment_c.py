@@ -843,7 +843,7 @@ def slicer_data(nClicks, values):
     figOri = no_update
     figAli = no_update
 
-    if alidata.has_orifig() or alidata.has_orifig():
+    if alidata.has_orifig() or alidata.has_alifig():
         fig = slicer(values)
         if alidata.has_alifig():
             figAli = fig
@@ -909,6 +909,7 @@ def update_spot_size(size):
         patch1 = Patch()
         for i in range(len(orifig['data'])):
             patch1['data'][i]['marker']['size'] = size
+            
     if alifig:
         patch2 = Patch()
         for i in range(len(alifig['data'])):
@@ -940,7 +941,7 @@ def alignment_plotFig(nClicks, x, y, z):
         绘制原始3d图像
     """
     if nClicks:
-        plot_origin_fig(x, y, z)
+        plot_fig(x, y, z)
 @callback(
     Input('init-restore-alignment', 'n_intervals'),
 )

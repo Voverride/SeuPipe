@@ -37,6 +37,7 @@ def paste1(adata:AnnData, x_field:str, y_field:str, z_field:str, use_gpu:bool=Fa
     try:
         set_steps_status(steps, 1, 'running', True)
         ensure_numeric_fields(adata, x_field, y_field, z_field)
+        field, status = validate_exp_data(adata)
     except Exception as e:
         set_steps_status(steps, 1, 'failed', True)
         if alistatus:
@@ -44,11 +45,7 @@ def paste1(adata:AnnData, x_field:str, y_field:str, z_field:str, use_gpu:bool=Fa
             return False
         else:
             raise e
-    field, status = validate_exp_data(adata)
-    if not status:
-        set_steps_status(steps, 1, 'experror', True)
-        set_steps_status(steps, 1, 'failed', True)
-        return False
+        
     set_steps_status(steps, 1, 'complete', True)
 
     if use_rep==None and field!=None:
@@ -248,11 +245,20 @@ def validate_exp_data(adata:AnnData)->Tuple[str, bool]:
     """
     field = COUNTS_KEY
     X_backend = adata.X
-    if adata.raw is not None and adata.raw.X is not None:
-        adata.X = adata.raw.X.copy()
-    elif 'counts' in adata.layers:
-        adata.X = adata.layers["counts"].copy()
-    else:
+    flag = True
+    if flag and adata.raw is not None and adata.raw.X is not None:
+        try:
+            adata.X = adata.raw.X.copy()
+            flag = False
+        except Exception as e:
+            flag = True
+    elif flag and 'counts' in adata.layers:
+        try:
+            adata.X = adata.layers["counts"].copy()
+            flag = False
+        except Exception as e:
+            flag = True
+    elif  flag:
         adata.X = adata.X.copy()
     sc.pp.normalize_total(adata, target_sum=1e4) 
     min_exp = np.min(adata.X)

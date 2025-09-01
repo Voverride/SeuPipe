@@ -127,7 +127,7 @@ def parse_tasklist(lines:list):
     try:
         data = []
         for line in lines:
-            z, image, gem, *extra = re.split(r'[,\s]+', line.strip())
+            z, image, gem, *extra = re.split(r'[,]+', line.strip())
             data.append({
                 'z': int(z),
                 'image': image.strip(),

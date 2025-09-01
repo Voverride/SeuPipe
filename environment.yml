@@ -410,4 +410,3 @@ dependencies:
       - xyzservices==2025.1.0
       - yarl==1.18.3
       - zipp==3.20.2
-prefix: /home/zhouyb/.conda/envs/SeuPipe

@@ -32,7 +32,7 @@ control_panel = html.Div(
                 ),
                 fac.AntdSpace(
                     [
-                        fac.AntdText('Select Slice'),
+                        fac.AntdText('Select Slice', id='mv-select-slice-label'),
                         fac.AntdTooltip(
                             fac.AntdSelect(
                                 id='maskviewer-select-slice',
@@ -53,7 +53,7 @@ control_panel = html.Div(
                 ),
                 fac.AntdSpace(
                     [
-                        fac.AntdText('Select Graph'),
+                        fac.AntdText('Select Graph', id='mv-select-graph-label'),
                         fac.AntdTooltip(
                             fac.AntdSelect(
                                 id='maskviewer-select-graph',

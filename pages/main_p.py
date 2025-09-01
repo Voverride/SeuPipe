@@ -43,7 +43,9 @@ main_layout = html.Div([
     ),
     fac.AntdSpin(
         html.Div(id='main-loading-area'), 
+        id='main-spin-area',
         text='loading', 
+        spinning=True,
         fullscreen=True,
     ),
     fileSelecter.get_box(),

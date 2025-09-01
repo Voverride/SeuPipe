@@ -634,6 +634,7 @@ class AlignmentData:
         )
         fig.update_layout(
             autosize=True,
+            uirevision=True,
             legend=dict(
                 itemsizing='constant',
                 traceorder = 'reversed',

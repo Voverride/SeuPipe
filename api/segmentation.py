@@ -159,7 +159,7 @@ def segment_cells_cellpose(adata, modeltype='cyto3', diameter=None, batch_size=8
         if use_gpu:
             torch.cuda.empty_cache()
     mask_array = adata.layers[output_layer]
-    mask, contour = generate_cell_masks(mask_array, hex_colors=hexcolors)
+    mask, contour = generate_cell_masks_rgba(mask_array, hex_colors=hexcolors)
     adata.uns['cellpose_mask'] = mask
     adata.uns['cellpose_contour'] = contour
     return adata
@@ -179,7 +179,7 @@ def segment_cells_watershed(adata, layer='stain', output_layer='watershed_mask',
         pass
     adata.layers[output_layer] = sparse.csr_matrix(adata.layers[output_layer].astype(np.uint16))
     mask_array = adata.layers[output_layer]
-    mask, contour = generate_cell_masks(mask_array, hex_colors=hexcolors)
+    mask, contour = generate_cell_masks_rgba(mask_array, hex_colors=hexcolors)
     adata.uns['watershed_mask'] = mask
     adata.uns['watershed_contour'] = contour
     return adata
@@ -232,6 +232,55 @@ def generate_cell_masks(mask_array, scale=255, hex_colors=None, background=np.na
     
     return colored_rgb, contour_rgb
 
+def generate_cell_masks_rgba(mask_array, scale=255, hex_colors=scientific_colors):
+    """
+    输入: 
+        mask_array (numpy.ndarray or scipy.sparse.csr_matrix): 细胞编号矩阵（0=背景，非零值=细胞编号）
+        scale (int): 输出RGB和Alpha值的缩放因子（默认255）
+        hex_colors (list): 16进制颜色列表，如 ['#FF0000', '#00FF00', '#0000FF'],默认None
+    输出:
+        colored_rgba (numpy.ndarray): RGBA格式的细胞区域图（shape: h,w,4）
+        contour_rgba (numpy.ndarray): RGBA格式的细胞轮廓图（shape: h,w,4）
+    """
+    if not sparse.issparse(mask_array):
+        mask_array = sparse.csr_matrix(mask_array.astype(np.uint16))
+    
+    h, w = mask_array.shape
+    colored_rgba = np.zeros((h, w, 4), dtype=np.float32)
+    contour_rgba = np.zeros((h, w, 4), dtype=np.float32)
+    
+    cell_ids = np.unique(mask_array.data)
+    cell_ids = cell_ids[cell_ids != 0]
+    
+    if hex_colors is None:
+        colors = plt.cm.tab20(np.linspace(0, 1, len(cell_ids)))
+        colors = colors[:, :3]
+    else:
+        colors = np.array([mcolors.hex2color(c) for c in hex_colors])
+    
+    for i, cell_id in enumerate(cell_ids):
+        cell_mask = (mask_array == cell_id)
+        dense_mask = cell_mask.toarray()
+        color = colors[i % len(colors)]
+        
+        rows, cols = cell_mask.nonzero()
+        colored_rgba[rows, cols, :3] = color
+        colored_rgba[rows, cols, 3] = 1.0
+        
+        contours = find_contours(dense_mask, level=0.5)
+        for contour in contours:
+            for y, x in contour.astype(int):
+                if 0 <= y < h and 0 <= x < w:
+                    contour_rgba[y, x, :3] = color
+                    contour_rgba[y, x, 3] = 1.0
+    
+    if scale != 1:
+        colored_rgba[..., :3] *= scale
+        colored_rgba[..., 3] *= scale
+        contour_rgba[..., :3] *= scale
+        contour_rgba[..., 3] *= scale
+    
+    return colored_rgba, contour_rgba
 
 def generate_expression_mask(expr_data, scale=255, expr_cmap='cividis', background=np.nan):
     """
