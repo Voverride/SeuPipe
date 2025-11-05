@@ -9,6 +9,7 @@ from controller.notice import set_aside_notice
 from controller.alignment_ctl import read_alignment_file, export_alignment_file
 from controller.annotation_ctl import read_annotask_refdata, read_annotask_querydata, export_annotation_file
 from controller.segmentation_ctl import read_tasklist_file
+from controller.regionclip_ctl import read_regionclip_file
 import os
 
 class FileSelecter:
@@ -184,6 +185,10 @@ class FileSelecter:
                         success = read_tasklist_file(path)
                         if success:
                             self.close_box()
+                    if page=='RegionClip':
+                        success = read_regionclip_file(path)
+                        if success:
+                            self.close_box()
 
                 elif title=='Export Data':
                     if page=='Alignment':
@@ -221,7 +226,7 @@ class FileSelecter:
                     return False
                 return True
             elif title=='Import Data':
-                if header=='Segmentation':
+                if header=='Segmentation' or header=='RegionClip':
                     if os.path.isfile(path):
                         return False
                 elif os.path.exists(path) and path.endswith('.h5ad'):

@@ -46,6 +46,11 @@ def get_segmentation_workspace()->str:
     check_path(path)
     return path
 
+def get_regionclip_workspace()->str:
+    path = os.path.join(get_workspace(), 'RegionClip')
+    check_path(path)
+    return path
+
 def get_cache_workspace()->str:
     path = os.path.join(get_workspace(), 'Cache')
     check_path(path)

@@ -1,9 +1,10 @@
 from dash import Input, Output, callback, State
 from dash.exceptions import PreventUpdate
+# import pages.regionclip_p as regionclip
 import pages.segmentation_p as segmentation
-import pages.expansion_p as expansion
+# import pages.expansion_p as expansion
 import pages.maskviewer_p as maskviewer
-import pages.filtering_p as filtering
+# import pages.filtering_p as filtering
 import pages.annotation_p as annotation
 import pages.alignment_p as alignment
 import pages.visiualization_p as visualization
@@ -15,10 +16,11 @@ from dash import Patch
 
 
 menu = [
+    # {'title':'RegionClip', 'icon':'fc-repair', 'page':regionclip},
     {'title':'Segmentation', 'icon':'fc-radar-chart', 'page':segmentation},
-    {'title':'Expansion', 'icon':'fc-mind-map', 'page':expansion},
+    # {'title':'Expansion', 'icon':'fc-mind-map', 'page':expansion},
     {'title':'MaskViewer', 'icon':'fc-data-sheet', 'page':maskviewer},
-    {'title':'Filtering', 'icon':'fc-multiple-inputs', 'page':filtering},
+    # {'title':'Filtering', 'icon':'fc-multiple-inputs', 'page':filtering},
     {'title':'Annotation', 'icon':'fc-view-details', 'page':annotation},
     {'title':'Alignment', 'icon':'fc-workflow', 'page':alignment},
     {'title':'Visualization', 'icon':'fc-scatter-chart', 'page':visualization}

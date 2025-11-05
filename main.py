@@ -11,6 +11,7 @@ import dash
 from pages.main_p import main_layout
 import argparse
 from controller.segmentation_ctl import parse_tasklist
+from controller.regionclip_ctl import parse_regionclip_tasklist
 from flask import request
 from io import TextIOWrapper, BytesIO
 from controller.notice import global_error_handler
@@ -61,7 +62,7 @@ app.clientside_callback(
 @app.server.route('/upload/', methods=['POST'])
 def upload():
     '''
-    构建文件上传服务
+    构建细胞分割清单上传服务
     :return:
     '''
     try:
@@ -69,6 +70,21 @@ def upload():
         text_stream = TextIOWrapper(BytesIO(file.read()), encoding='utf-8')
         lines = text_stream.readlines()
         parse_tasklist(lines)
+    except Exception as e:
+        raise e
+    return {'filename': ''}
+
+@app.server.route('/upload/regionClip', methods=['POST'])
+def uploadRegionClip():
+    '''
+    构建图像裁剪清单上传服务
+    :return:
+    '''
+    try:
+        file = request.files['file']
+        text_stream = TextIOWrapper(BytesIO(file.read()), encoding='utf-8')
+        lines = text_stream.readlines()
+        parse_regionclip_tasklist(lines)
     except Exception as e:
         raise e
     return {'filename': ''}

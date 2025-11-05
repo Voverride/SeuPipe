@@ -4,7 +4,25 @@ import plotly.express as px
 import io
 import base64
 import numpy as np
+from io import BytesIO
+from datetime import datetime
 
+def array_to_base64(arr):
+    """
+    将 NumPy 数组转换为 Base64 编码的 PNG 图片
+    """
+    pil_img = Image.fromarray(arr)
+    buf = BytesIO()
+    pil_img.save(buf, format='PNG')
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+def get_current_date():
+    """
+    获取当前日期
+    """
+    now = datetime.now()
+    formatted_time = now.strftime("%Y/%m/%d %H:%M")
+    return formatted_time
 def get_imgfig_withplotly(img_array, title=None):
     """
     基于图像矩阵绘制交互图形

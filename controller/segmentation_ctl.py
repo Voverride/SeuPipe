@@ -86,7 +86,7 @@ def process_submited_tasklist(taskName, fileStatus, modelType, diameter, batchsi
     """
     处理提交的任务列表，并将任务持久化到本地
     """
-    if taskName.strip()=='' or taskName is None:
+    if taskName is None or taskName.strip()=='':
         set_head_notice('Task Name cannot be empty', type='error')
         return False
     taskList = segData.get_exist_tasks()
