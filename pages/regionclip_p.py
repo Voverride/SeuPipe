@@ -136,10 +136,19 @@ control_panel = html.Div(
                             shape='circle',
                             icon=fac.AntdIcon(icon='pi-plus'),
                         ),
-                        fac.AntdButton(
-                            size='small',
-                            shape='circle',
-                            icon=fac.AntdIcon(icon='pi-minus')
+                        fac.AntdPopconfirm(
+                            fac.AntdButton(
+                                id='clip-delete-clipName',
+                                size='small',
+                                shape='circle',
+                                icon=fac.AntdIcon(icon='pi-minus')
+                            ),
+                            id='clip-delete-clipName-confirm',
+                            locale='en-us',
+                            arrow='hide',
+                            okText='yes',
+                            placement='bottomLeft',
+                            title='Confirm Delete?'
                         )
                     ],
                     size='small'
@@ -207,9 +216,8 @@ content_panel = html.Div(
                             'children': fac.AntdCenter(
                                 dcc.Graph(
                                     id="clip-graph-original", 
-                                    figure=stain_fig,
                                     config={'displaylogo':False}, 
-                                    style={'display':'block', 'height':'calc(90vh - 50px)', 'width':'100%'}
+                                    style={'visibility':'hidden', 'height':'calc(90vh - 50px)', 'width':'100%'}
                                 ),
                             ),
                             'collapsible': True,
@@ -218,9 +226,20 @@ content_panel = html.Div(
                         {
                             'children': fac.AntdSpace(
                                 [
-                                    fac.AntdText('Gene Expression Overlay'),
-                                    fac.AntdImage(src='', height='calc(35vh - 17px)', id='clip-image-gemOverlay'),
                                     fac.AntdText('Image Clip'),
+                                    fac.AntdImage(
+                                        src='',
+                                        height='calc(35vh - 17px)',
+                                        id='clip-stain-image',
+                                        style={'visibility':'hidden'}
+                                    ),
+                                    fac.AntdText('GEM Clip'),
+                                    fac.AntdImage(
+                                        src='',
+                                        height='calc(35vh - 17px)',
+                                        id='clip-gem-image',
+                                        style={'visibility':'hidden'}
+                                    )
                                 ],
                                 direction='vertical',
                                 size='middle',

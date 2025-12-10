@@ -244,6 +244,7 @@ class SegmentationData:
         """
         seg_path = get_segmentation_workspace()
         tasks = os.listdir(seg_path)
-        return {task for task in tasks if os.path.isdir(os.path.join(seg_path, task))}
+        tasks.sort()
+        return [task for task in tasks if os.path.isdir(os.path.join(seg_path, task))]
 
 segData = SegmentationData()

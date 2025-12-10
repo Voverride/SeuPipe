@@ -28,7 +28,7 @@ Once the environment is set up, you can run the web application using the follow
 
 1. Navigate to the project directory (where the `main.py` file is located).
 2. Run the app with custom parameters:
-   * **host：**`127.0.0.1 (default)`
+   * **host：**`auto-detected network IP (default)`
    * **port:** `8088 (default)`
    * **debug:** `False (default)`
 
@@ -38,7 +38,7 @@ Once the environment is set up, you can run the web application using the follow
    python main.py --host <host_address> --port <port_number> --debug <True/False>
    ```
 
-   For example, to run the app on `127.0.0.1` at port `8088`:
+   For example, to run the app on `auto-detected network IP` at port `8088`:
 
    ```bash
    python main.py
@@ -50,7 +50,7 @@ Once the environment is set up, you can run the web application using the follow
 1. Once the app is running, open your web browser and navigate to:
 
    ```
-   http://127.0.0.1:8088
+   http://auto-detected network IP:8088
    ```
 
    You should now see the SeuPipe interface.

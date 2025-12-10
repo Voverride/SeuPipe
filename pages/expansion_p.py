@@ -145,7 +145,7 @@ new_task_modal = fac.AntdModal(
     mask=False,
     width=700,
     maskClosable=False,
-    visible=True
+    visible=False
 )
 
 
@@ -168,11 +168,8 @@ control_panel = html.Div(
                 fac.AntdTooltip(
                     fac.AntdSelect(
                         id='expand-select-taskname',
-                        # options=['task1', 'task2', 'task3'],
-                        # value='task1',
                         placeholder='Select Task',
                         debounceWait=300,
-                        # persistence=True,
                         locale='en-us',
                         allowClear=False,
                         style={'width':'100%'}
@@ -195,8 +192,109 @@ control_panel = html.Div(
 )
 
 content_panel = html.Div(
-    fac.AntdEmpty(
-        description=fac.AntdText('当前页面开发中', type='secondary'),
-        imageStyle={'height': 250},
-    )
+    fac.AntdSpace(
+        [
+            fac.AntdSpace(
+                [
+                    fac.AntdButton(
+                        'Start Task', 
+                        type='primary',
+                        id='exp-start-task',
+                        icon=fac.AntdIcon(icon='antd-carry-out'),
+                        style={'backgroundColor':'#7d8a70'}
+                    ),
+                    fac.AntdPopconfirm(
+                        fac.AntdButton(
+                            'Delete Task', 
+                            id='exp-delete-task',
+                            type='primary',
+                            icon=fac.AntdIcon(icon='antd-delete'),
+                            style={'backgroundColor':'#ca8269'}
+                        ),
+                        id='exp-delete-task-confirm',
+                        locale='en-us',
+                        arrow='hide',
+                        okText='yes',
+                        placement='bottomLeft',
+                        title='Confirm Delete?'
+                    ),
+                    fac.AntdSpace(
+                        [
+                            fac.AntdButton(
+                                'Show Bug',
+                                id='exp-button-showBug',
+                                type='primary', 
+                                icon=fac.AntdIcon(icon='antd-bug'), 
+                                style={'backgroundColor':'#a87a76', 'display':'block'}
+                            ),
+                            fac.AntdText("🚨 Error occurred during execution. Click Show Bug for details !", style={'color':'#a87a76'}, strong=True)
+                        ],
+                        id='exp-bug-panel',
+                        size='middle',
+                        style={'display':'none'}
+                    )
+                ],
+                size='middle',
+                style={'marginTop':'24.5px'},
+            ),
+            fac.AntdTable(
+                columns=[
+                    {'title': 'creator', 'dataIndex': 'creator', 'width':'15%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'mode', 'dataIndex': 'mode', 'width':'15%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'patchSize', 'dataIndex': 'patchSize', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'binSize', 'dataIndex': 'binSize', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'epochs', 'dataIndex': 'epochs', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'diameter', 'dataIndex': 'diameter', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'neighbors', 'dataIndex': 'neighbors', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'progress', 'dataIndex': 'progress', 'width':'21.2%', 'renderOptions': {'renderType': 'mini-ring-progress'}}
+                ],
+                # data = [
+                #     {
+                #         'creator': 'zhouyb',
+                #         'mode': 'patch',
+                #         'patchSize': 300,
+                #         'binSize': 3,
+                #         'epochs': 100,
+                #         'diameter': 16,
+                #         'neighbors': 50,
+                #         'progress': 5,
+                #     }
+                # ],
+                style={'width': '100%'},
+                id='exp-table-metadata',
+                locale='en-us',
+                bordered=True,
+                miniChartHeight=75,
+                pagination=False,
+            ),
+            fac.AntdTable(
+                columns=[
+                    {'title': 'z', 'dataIndex': 'z', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'registration','dataIndex': 'registration', 'group': 'Segmentation', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'segmentation','dataIndex': 'segmentation', 'group': 'Segmentation', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'preprocess','dataIndex': 'preprocess', 'group': 'Expansion', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'train','dataIndex': 'train', 'group': 'Expansion', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'postprocess','dataIndex': 'postprocess', 'group': 'Expansion', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
+                ],
+                conditionalStyleFuncs={ 
+                    label: """
+                        (record, index) => {
+                            return { style: { backgroundColor: "#FAFAFA" } }
+                        }
+                    """ 
+                    for label in ['z', 'registration', 'segmentation']
+                },
+                style={'width': '100%'},
+                id='exp-table-tasklist',
+                bordered=True,
+                locale='en-us',
+                pagination=False,
+                maxHeight='calc(93vh - 290px)'
+            )
+        ],
+        direction='vertical',
+        size='middle',
+        style={'width':'calc(100vw - 480px)', 'height':'100%'}
+    ),
+    style={'width':'100%', 'height':'100%', 'display':'flex', 'justifyContent':'center'}
 )

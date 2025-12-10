@@ -1,13 +1,13 @@
 from dash import Input, Output, callback, State
 from dash.exceptions import PreventUpdate
 # import pages.regionclip_p as regionclip
-import pages.segmentation_p as segmentation
-# import pages.expansion_p as expansion
-import pages.maskviewer_p as maskviewer
+# import pages.segmentation_p as segmentation
+import pages.expansion_p as expansion
+# import pages.maskviewer_p as maskviewer
 # import pages.filtering_p as filtering
-import pages.annotation_p as annotation
-import pages.alignment_p as alignment
-import pages.visiualization_p as visualization
+# import pages.annotation_p as annotation
+# import pages.alignment_p as alignment
+# import pages.visiualization_p as visualization
 import pages.passcode_p as passcode
 from pages.components.fileSelecter import fileSelecter
 from dataManager.workspace import *
@@ -17,13 +17,13 @@ from dash import Patch
 
 menu = [
     # {'title':'RegionClip', 'icon':'fc-repair', 'page':regionclip},
-    {'title':'Segmentation', 'icon':'fc-radar-chart', 'page':segmentation},
-    # {'title':'Expansion', 'icon':'fc-mind-map', 'page':expansion},
-    {'title':'MaskViewer', 'icon':'fc-data-sheet', 'page':maskviewer},
+    # {'title':'Segmentation', 'icon':'fc-radar-chart', 'page':segmentation},
+    {'title':'Expansion', 'icon':'fc-mind-map', 'page':expansion},
+    # {'title':'MaskViewer', 'icon':'fc-data-sheet', 'page':maskviewer},
     # {'title':'Filtering', 'icon':'fc-multiple-inputs', 'page':filtering},
-    {'title':'Annotation', 'icon':'fc-view-details', 'page':annotation},
-    {'title':'Alignment', 'icon':'fc-workflow', 'page':alignment},
-    {'title':'Visualization', 'icon':'fc-scatter-chart', 'page':visualization}
+    # {'title':'Annotation', 'icon':'fc-view-details', 'page':annotation},
+    # {'title':'Alignment', 'icon':'fc-workflow', 'page':alignment},
+    # {'title':'Visualization', 'icon':'fc-scatter-chart', 'page':visualization}
 ]
 
 menu.append({'title':'Passcode', 'icon':'fc-tree-structure', 'page':passcode})
@@ -134,8 +134,8 @@ def select_workspace(style):
 @callback(
     Input('init-restore', 'n_intervals'),
 )
-def test(_):
+def restore_user_state(_):
     """
-    登录成功后弹出选择工作目录窗口
+    刷新页面时，重置页面状态，触发用工作目录检查
     """
     restore_usrinfo()

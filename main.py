@@ -1,21 +1,25 @@
-import warnings
-from numba import errors
-import tensorflow as tf
-from tensorflow.python.ops.numpy_ops import np_config
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    tf.config.experimental.set_memory_growth(gpus[0], True)
-np_config.enable_numpy_behavior()
-warnings.filterwarnings("ignore", category=errors.NumbaWarning)
+# import warnings
+# from numba import errors
+# import tensorflow as tf
+# from tensorflow.python.ops.numpy_ops import np_config
+# gpus = tf.config.list_physical_devices('GPU')
+# if gpus:
+#     tf.config.experimental.set_memory_growth(gpus[0], True)
+# np_config.enable_numpy_behavior()
+# warnings.filterwarnings("ignore", category=errors.NumbaWarning)
 import dash
 from pages.main_p import main_layout
 import argparse
-from controller.segmentation_ctl import parse_tasklist
+# from controller.segmentation_ctl import parse_tasklist
 from controller.regionclip_ctl import parse_regionclip_tasklist
+from utils.commonfuc import get_local_ip
 from flask import request
 from io import TextIOWrapper, BytesIO
 from controller.notice import global_error_handler
 from dash.dependencies import Input, Output, State
+from websocket.websocket import ws
+import os
+import threading
 
 app = dash.Dash(
     __name__, 
@@ -92,12 +96,16 @@ def uploadRegionClip():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run a Dash app with custom parameters.")
-    parser.add_argument('--host', type=str, default="127.0.0.1", help="Host address to run the app on (default: 127.0.0.1).")
+    parser.add_argument('--host', type=str, default=get_local_ip(), help="Host address to run the app on (default: auto-detected network IP).")
     parser.add_argument('--port', type=int, default=8088, help="Port to run the app on (default: 8088).")
-    parser.add_argument('--debug', type=bool, default=False, help="Enable or disable debug mode (default: False).")
+    parser.add_argument('--debug', action='store_true', default=False, help="Enable or disable debug mode (default: False).")
     
     args = parser.parse_args()
     reload = True if args.debug else False
+
+    if os.environ.get("WERKZEUG_RUN_MAIN") is None:
+        ws_thread = threading.Thread(target=ws.run, daemon=True)
+        ws_thread.start()
 
     app.run(
         host=args.host, 

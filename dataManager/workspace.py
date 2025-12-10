@@ -41,6 +41,11 @@ def get_annotation_workspace()->str:
     check_path(path)
     return path
 
+def get_expansion_workspace()->str:
+    path = os.path.join(get_workspace(), 'Expansion')
+    check_path(path)
+    return path
+
 def get_segmentation_workspace()->str:
     path = os.path.join(get_workspace(), 'Segmentation')
     check_path(path)

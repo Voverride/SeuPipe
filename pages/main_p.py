@@ -3,6 +3,8 @@ import feffery_antd_components as fac
 from callbacks.main_c import *
 from .components.login import login_box
 from .components.fileSelecter import fileSelecter
+from dash_extensions import WebSocket
+from utils.commonfuc import get_local_ip
 
 main_layout = html.Div([
     login_box,
@@ -41,6 +43,7 @@ main_layout = html.Div([
         id='auth-interval',
         interval=1000,
     ),
+    WebSocket(url=f"ws://{get_local_ip()}:8765", id="ws"),
     fac.AntdSpin(
         html.Div(id='main-loading-area'), 
         id='main-spin-area',

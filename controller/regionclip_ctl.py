@@ -12,6 +12,39 @@ import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 
+def get_clipped_images(taskName, slicename, clipName, x_start, x_end, y_start, y_end):
+    """
+    获取指定任务和切片的裁剪图像
+    """
+    clipData.clip_image(taskName, slicename, clipName, x_start, x_end, y_start, y_end)
+    stain_path = clipData.get_task_clipName_stain_path(taskName, slicename, clipName)
+    gem_image_path = clipData.get_task_clipName_gemImage_path(taskName, slicename, clipName)
+    stain_src = get_image_base64(stain_path)
+    gem_src = get_image_base64(gem_image_path)
+    return stain_src, gem_src
+
+def get_image_base64(image_path):
+    """
+    将图像文件转换为 base64 编码的字符串
+    """
+    img = iio.imread(image_path)
+    return convert_mtx_to_base64_image(img)
+def convert_mtx_to_base64_image(mtx):
+    """
+    将矩阵转换为 base64 编码的 PNG 图像
+    """
+    plt.figure(figsize=(10, 10))
+    plt.imshow(mtx, cmap='gray')
+    plt.axis('off')
+    plt.tight_layout(pad=0)
+
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', pad_inches=0)
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    graph = base64.b64encode(image_png).decode('utf-8')
+    plt.close()
+    return f'data:image/png;base64,{graph}'
 def get_gem_on_stain_to_base64(stain_path, gem_path, alpha=0.5):
     """
     将 GEM 数据叠加到染色图像上，并返回 data:image/png;base64,... 格式的字符串
@@ -71,10 +104,8 @@ def get_slice_figure(taskname, slicename):
     """
     taskInfo = clipData.get_slice_info(taskname, slicename)
     stain_fig = no_update
-    overlay_fig = no_update
     if taskInfo is not None:
         img_path = taskInfo.get('image', None)
-        gem_path = taskInfo.get('gem', None)
         if img_path is not None:
             img = iio.imread(img_path)
             stain_fig = px.imshow(
@@ -88,9 +119,7 @@ def get_slice_figure(taskname, slicename):
                 xaxis_visible=False,
                 yaxis_visible=False
             )
-        if gem_path is not None:
-            overlay_fig = get_gem_on_stain_to_base64(img_path, gem_path)
-    return stain_fig, overlay_fig
+    return stain_fig
 
 def delete_task_from_disk(taskName):
     """

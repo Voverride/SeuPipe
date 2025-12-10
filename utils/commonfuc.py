@@ -6,7 +6,33 @@ import base64
 import numpy as np
 from io import BytesIO
 from datetime import datetime
+import socket
+import json
 
+def read_json(file_path):
+    """
+    读取 JSON 文件并返回数据
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return data
+def write_json(file_path, data):
+    """
+    将数据写入 JSON 文件
+    """
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+def get_local_ip():
+    """
+    获取本机网络 IP 地址
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        return ip
+    except Exception:
+        return "127.0.0.1"
 def array_to_base64(arr):
     """
     将 NumPy 数组转换为 Base64 编码的 PNG 图片
