@@ -152,6 +152,131 @@ class SegmentationData:
         if username not in self._temptask:
             self._temptask[username] = {}
         return username
+    
+    def get_seg_task_folder(self, taskName:str):
+        """
+        获取分割任务文件夹
+        """
+        seg_workspace = get_segmentation_workspace()
+        task_folder = os.path.join(seg_workspace, taskName)
+        check_path(task_folder)
+        return task_folder
+    
+    def get_seg_adata_path(self, taskName:str, z_index:int):
+        """
+        获取分割结果的adata文件路径
+        """
+        slice_path = self.get_seg_slice_zfolder(taskName, z_index)
+        adata_path = os.path.join(slice_path, f'z_{z_index}.h5ad')
+        return adata_path
+    
+    def get_seg_slice_folder(self, taskName:str):
+        """
+        获取分割结果文件夹
+        """
+        seg_workspace = get_segmentation_workspace()
+        slice_folder = os.path.join(seg_workspace, taskName, 'slices')
+        check_path(slice_folder)
+        return slice_folder
+    
+    def get_seg_slice_zfolder(self, taskName:str, z_index:int):
+        """
+        获取分割结果切片文件夹
+        """
+        seg_workspace = get_segmentation_workspace()
+        slice_folder = os.path.join(seg_workspace, taskName, 'slices', f'z_{z_index}')
+        check_path(slice_folder)
+        return slice_folder
+    
+    def get_seg_registration_folder(self, taskName:str, z_index:int):
+        """
+        获取分割结果配准文件夹
+        """
+        seg_workspace = get_segmentation_workspace()
+        registration_folder = os.path.join(seg_workspace, taskName, 'slices', f'z_{z_index}', 'registration')
+        check_path(registration_folder)
+        return registration_folder
+    
+    def get_seg_figure_folder(self, taskName:str, z_index:int):
+        """
+        获取分割结果图片文件夹
+        """
+        seg_workspace = get_segmentation_workspace()
+        figure_folder = os.path.join(seg_workspace, taskName, 'slices', f'z_{z_index}', 'figure')
+        check_path(figure_folder)
+        return figure_folder
+    
+    def get_registration_before_path(self, taskName:str, z_index:int):
+        """
+        配准前叠加图像文件地址
+        """
+        registration_folder = self.get_seg_registration_folder(taskName, z_index)
+        figure_path = os.path.join(registration_folder, 'before.pkl')
+        return figure_path
+    
+    def get_registration_aligned_path(self, taskName:str, z_index:int):
+        """
+        配准后叠加图像文件地址
+        """
+        registration_folder = self.get_seg_registration_folder(taskName, z_index)
+        figure_path = os.path.join(registration_folder, 'aligned.pkl')
+        return figure_path
+    
+    def get_seg_stain_figure_path(self, taskName:str, z_index:int):
+        """
+        获取配准后染色图像文件地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'stain.pkl')
+        return figure_path
+    
+    def get_seg_cellpose_mask_figure_path(self, taskName:str, z_index:int):
+        """
+        获取celpose细胞分割mask图片地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'cellpose_mask.pkl')
+        return figure_path
+    
+    def get_seg_watershed_mask_figure_path(self, taskName:str, z_index:int):
+        """
+        获取watershed细胞分割mask图片地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'watershed_mask.pkl')
+        return figure_path
+    
+    def get_seg_watershed_contour_figure_path(self, taskName:str, z_index:int):
+        """
+        获取watershed细胞分割contour图片地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'watershed_contour.pkl')
+        return figure_path
+    
+    def get_seg_cellpose_contour_figure_path(self, taskName:str, z_index:int):
+        """
+        获取celpose细胞分割contour图片地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'cellpose_contour.pkl')
+        return figure_path
+    
+    def get_seg_expansion_mask_figure_path(self, taskName:str, z_index:int):
+        """
+        获取扩胞结果图片地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'expansion_mask.pkl')
+        return figure_path
+    
+    def get_seg_expansion_contour_figure_path(self, taskName:str, z_index:int):
+        """
+        获取扩胞结果contour图片地址
+        """
+        figure_folder = self.get_seg_figure_folder(taskName, z_index)
+        figure_path = os.path.join(figure_folder, 'expansion_contour.pkl')
+        return figure_path
 
     def delete_task(self, taskName):
         """

@@ -17,16 +17,15 @@ import spateo as st
 from cellpose import models
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage.measure import find_contours
 from scipy import sparse
 from PIL import Image
-import plotly.graph_objects as go
-import matplotlib.colors as mcolors
 import io
 import pickle
 from utils.colors import *
 import traceback
 from dataManager.workspace import *
+from utils.commonfuc import *
+from dataManager.segmentation_d import segData
 def run_segmentation_task(taskInfo):
     """
     启动分割任务
@@ -64,10 +63,9 @@ def run_segmentation_task(taskInfo):
                 adata = segment_cells_cellpose(adata, modeltype=model, batch_size=batchsize, diameter=diameter, gpu=gpu, hexcolors=primaryColors)
                 adata = segment_cells_watershed(adata, hexcolors=primaryColors)
                 z = item['z']
-                root_path = get_segmentation_workspace()
-                slice_folder = os.path.join(root_path, taskName, 'slices')
-                check_path(slice_folder)
-                adata.write_h5ad(os.path.join(slice_folder, f'z_{z}.h5ad'))
+                adata_path = segData.get_seg_adata_path(taskName, z)
+                write_result(adata, taskName, z)
+                adata.write_h5ad(adata_path)
 
             except Exception as e:
                 set_progress_status(seg, 'error')
@@ -79,12 +77,34 @@ def run_segmentation_task(taskInfo):
             metadata['progress'] = round(current/size, 2)  
             taskInfo_copy = taskInfo.copy()
             taskInfo_copy['thread'] = None
-            with open(os.path.join(root_path, taskName, 'tasklist.pkl'), 'wb') as f:
+            task_folder = segData.get_seg_task_folder(taskName)
+            with open(os.path.join(task_folder, 'tasklist.pkl'), 'wb') as f:
                 pickle.dump(taskInfo_copy, f)
 
     except Exception as e:
         taskInfo['exception'] = traceback.format_exc()
         return
+    
+def write_result(ad, taskName, zIndex):
+    """
+    写入分割结果
+    """
+    before_path = segData.get_registration_before_path(taskName, zIndex)
+    aligned_path = segData.get_registration_aligned_path(taskName, zIndex)
+    watershed_mask_figure_path = segData.get_seg_watershed_mask_figure_path(taskName, zIndex)
+    cellpose_mask_figure_path = segData.get_seg_cellpose_mask_figure_path(taskName, zIndex)
+    watershed_contour_figure_path = segData.get_seg_watershed_contour_figure_path(taskName, zIndex)
+    cellpose_contour_figure_path = segData.get_seg_cellpose_contour_figure_path(taskName, zIndex)
+    stain_figure_path = segData.get_seg_stain_figure_path(taskName, zIndex)
+
+    write_pkl(ad.layers['stain'], stain_figure_path)
+    write_pkl(ad.uns['before'], before_path)
+    write_pkl(ad.uns['aligned'], aligned_path)
+    write_pkl(ad.uns['watershed_mask'], watershed_mask_figure_path)
+    write_pkl(ad.uns['cellpose_mask'], cellpose_mask_figure_path)
+    write_pkl(ad.uns['watershed_contour'], watershed_contour_figure_path)
+    write_pkl(ad.uns['cellpose_contour'], cellpose_contour_figure_path)
+    del ad.uns
 
 def set_progress_status(progress:dict, status):
     """
@@ -183,131 +203,3 @@ def segment_cells_watershed(adata, layer='stain', output_layer='watershed_mask',
     adata.uns['watershed_mask'] = mask
     adata.uns['watershed_contour'] = contour
     return adata
-
-def generate_cell_masks(mask_array, scale=255, hex_colors=None, background=np.nan):
-    """
-    输入: 
-        mask_array (numpy.ndarray or scipy.sparse.csr_matrix): 细胞编号矩阵（0=背景，非零值=细胞编号）
-        scale (int): 输出RGB值的缩放因子（默认255）
-        hex_colors (list): 16进制颜色列表，如 ['#FF0000', '#00FF00', '#0000FF'],默认None
-        background: 背景填充值(默认NaN)
-    输出:
-        colored_rgb (numpy.ndarray): RGB格式的细胞区域图（shape: h,w,3），背景为NaN
-        contour_rgb (numpy.ndarray): RGB格式的细胞轮廓图（shape: h,w,3），背景为NaN
-    """
-    if not sparse.issparse(mask_array):
-        mask_array = sparse.csr_matrix(mask_array.astype(np.uint16))
-    
-    h, w = mask_array.shape
-    colored_rgb = np.full((h, w, 3), background, dtype=np.float32)
-    contour_rgb = np.full((h, w, 3), background, dtype=np.float32)
-    
-    cell_ids = np.unique(mask_array.data)
-    cell_ids = cell_ids[cell_ids != 0]
-    
-    if hex_colors == None:
-        colors = plt.cm.tab20(np.linspace(0, 1, len(cell_ids)))
-        colors = colors[:, :3] 
-    else:
-        colors = np.array([mcolors.hex2color(c) for c in hex_colors])
-    
-    for i, cell_id in enumerate(cell_ids):
-        cell_mask = (mask_array == cell_id)
-        dense_mask = cell_mask.toarray()
-        
-        color = colors[i % len(colors)]
-        
-        rows, cols = cell_mask.nonzero()
-        colored_rgb[rows, cols] = color
-        
-        contours = find_contours(dense_mask, level=0.5)
-        for contour in contours:
-            for y, x in contour.astype(int):
-                if 0 <= y < h and 0 <= x < w:
-                    contour_rgb[y, x] = color
-    
-    if scale != 1:
-        colored_rgb = colored_rgb * scale
-        contour_rgb = contour_rgb * scale
-    
-    return colored_rgb, contour_rgb
-
-def generate_cell_masks_rgba(mask_array, scale=255, hex_colors=scientific_colors):
-    """
-    输入: 
-        mask_array (numpy.ndarray or scipy.sparse.csr_matrix): 细胞编号矩阵（0=背景，非零值=细胞编号）
-        scale (int): 输出RGB和Alpha值的缩放因子（默认255）
-        hex_colors (list): 16进制颜色列表，如 ['#FF0000', '#00FF00', '#0000FF'],默认None
-    输出:
-        colored_rgba (numpy.ndarray): RGBA格式的细胞区域图（shape: h,w,4）
-        contour_rgba (numpy.ndarray): RGBA格式的细胞轮廓图（shape: h,w,4）
-    """
-    if not sparse.issparse(mask_array):
-        mask_array = sparse.csr_matrix(mask_array.astype(np.uint16))
-    
-    h, w = mask_array.shape
-    colored_rgba = np.zeros((h, w, 4), dtype=np.float32)
-    contour_rgba = np.zeros((h, w, 4), dtype=np.float32)
-    
-    cell_ids = np.unique(mask_array.data)
-    cell_ids = cell_ids[cell_ids != 0]
-    
-    if hex_colors is None:
-        colors = plt.cm.tab20(np.linspace(0, 1, len(cell_ids)))
-        colors = colors[:, :3]
-    else:
-        colors = np.array([mcolors.hex2color(c) for c in hex_colors])
-    
-    for i, cell_id in enumerate(cell_ids):
-        cell_mask = (mask_array == cell_id)
-        dense_mask = cell_mask.toarray()
-        color = colors[i % len(colors)]
-        
-        rows, cols = cell_mask.nonzero()
-        colored_rgba[rows, cols, :3] = color
-        colored_rgba[rows, cols, 3] = 1.0
-        
-        contours = find_contours(dense_mask, level=0.5)
-        for contour in contours:
-            for y, x in contour.astype(int):
-                if 0 <= y < h and 0 <= x < w:
-                    contour_rgba[y, x, :3] = color
-                    contour_rgba[y, x, 3] = 1.0
-    
-    if scale != 1:
-        colored_rgba[..., :3] *= scale
-        colored_rgba[..., 3] *= scale
-        contour_rgba[..., :3] *= scale
-        contour_rgba[..., 3] *= scale
-    
-    return colored_rgba, contour_rgba
-
-def generate_expression_mask(expr_data, scale=255, expr_cmap='cividis', background=np.nan):
-    """
-    输入: 
-        expr_data: 基因表达矩阵(稀疏或密集格式)
-        scale (int): RGB值缩放因子(默认255)
-        expr_cmap (str): 基因表达热图的colormap名称
-        background: 背景填充值(默认NaN)
-    输出:
-        expr_rgb (numpy.ndarray): 基因表达热图(shape: h,w,3), 背景为指定值
-    """
-    if sparse.issparse(expr_data):
-        expr_data = expr_data.toarray()
-    
-    h, w = expr_data.shape
-    expr_rgb = np.full((h, w, 3), background, dtype=np.float32)
-    
-    nonzero_mask = expr_data > 0
-    if np.any(nonzero_mask):
-        vmin = np.quantile(expr_data[nonzero_mask], 0.05)
-        vmax = np.quantile(expr_data[nonzero_mask], 0.95)
-        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
-        
-        cmap = plt.get_cmap(expr_cmap)
-        expr_rgb[nonzero_mask] = cmap(norm(expr_data[nonzero_mask]))[..., :3]
-    
-    if scale != 1:
-        expr_rgb = expr_rgb * scale
-    
-    return expr_rgb

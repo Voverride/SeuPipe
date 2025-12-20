@@ -38,7 +38,6 @@ main_layout = html.Div([
     dcc.Store(id="key-pressed-events"),
     dcc.Store(id="userid"),
     dcc.Location(id='main-refresh', refresh=True),
-    dcc.Interval(id="init-restore", interval=1, max_intervals=1),
     dcc.Interval(
         id='auth-interval',
         interval=1000,

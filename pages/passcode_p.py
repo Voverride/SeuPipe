@@ -5,7 +5,7 @@ from callbacks.passcode_c import *
 control_panel = html.Div(
     fac.AntdCard(
         fac.AntdEmpty(image='simple', description='Empty Toolbox'),
-        headStyle={'display': 'none'},
+        styles={'header': {'display': 'none'}},
         style={'height':'93vh','display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'},
     ), 
     id='passcode-control-panel'

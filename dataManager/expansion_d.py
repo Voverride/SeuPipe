@@ -5,48 +5,58 @@ from utils.commonfuc import *
 from dash import Patch
 from dataManager.segmentation_d import segData
 import shutil
+from utils.observer import observer
 import pickle
 
 class ExpansionData:
     def __init__(self):
         self._runningTask = {} # {key:taskname, value:taskinfo}
-        self._userVirtualTask = {} # {key:username, value:{key:taskname, value:taskinfo}}
-        self._temptask = {} #{key:username, value:taskinfo}
-        # {
-        #     'taskname': None,
-        #     'thread':None,
-        #     'exception':None,
-        #     'metadata':None,
-        #     {
-        #         'creator': 'zhouyb',
-        #         'model': 'cyto3',
-        #         'diameter': 10,
-        #         'batchsize': 8,
-        #         'GPU': 'True',
-        #         'progress': 0
-        #     }
-        #     'data': None
-        #     [
-        #         {
-        #             'image': 'image2',
-        #             'gem': 'gem1',
-        #             'z': 1,
-        #             'registration': {'status': 'success', 'text': 'success'},
-        #             'segmentation': {'status': 'success', 'text': 'success'},
-        #         }
-        #     ],
-        # }
 
-    def create_running_task(self, taskInfo):
+    def get_running_task(self, taskName):
+        """
+        获取正在运行的任务
+        """
+        if taskName in self._runningTask:
+            return self._runningTask[taskName]
+        return None
+    def create_running_task(self, taskName, callback):
         """
         创建正在运行的任务
         """
-        self._runningTask[taskInfo['taskname']] = taskInfo
-    def has_running_task(self, taskName:str):
+        taskInfo = self.read_taskinfo(taskName)
+        taskInfo['running'] = True
+        taskInfo['exception'] = None
+        taskInfo['progress'] = 0
+        for slice in taskInfo['slices']:
+            slice['preprocess']['status'] = 'warning'
+            slice['preprocess']['text'] = 'waiting'
+            slice['train']['status'] = 'warning'
+            slice['train']['text'] = 'waiting'
+            slice['postprocess']['status'] = 'warning'
+            slice['postprocess']['text'] = 'waiting'
+            slice['patchprocess']['status'] = 'warning'
+            slice['patchprocess']['text'] = '0/0'
+
+        boserved_task = observer.observe(taskInfo, callback)
+        self._runningTask[taskName] = boserved_task
+
+    def delete_running_task(self, taskName, callback):
         """
-        检查当前任务是否正在运行
+        删除正在运行的任务
         """
-        return taskName in self._runningTask
+        if taskName in self._runningTask:
+            runningTask = self._runningTask[taskName]
+            observer.disobserve(runningTask, callback)
+            del self._runningTask[taskName]
+    
+    def is_task_running(self, taskName):
+        """
+        判断任务是否正在运行
+        """
+        if taskName in self._runningTask:
+            taskInfo = self._runningTask[taskName]
+            return taskInfo.get('running', False)
+        return False
     
     def get_request_usrname(self):
         """
@@ -73,6 +83,10 @@ class ExpansionData:
         """
         读取用户创建的任务清单
         """
+        if taskName in self._runningTask:
+            taskInfo = dict(self._runningTask[taskName])
+            if taskInfo:
+                return taskInfo
         try:
             root_path = get_expansion_workspace()
             json_path = os.path.join(root_path, taskName, 'metadata.json')
@@ -82,7 +96,46 @@ class ExpansionData:
             return read_json(json_path)
         else:
             return None
-
+        
+    def get_expTask_folder(self, taskName):
+        """
+        获取扩增任务文件夹
+        """
+        task_folder = os.path.join(get_expansion_workspace(), taskName)
+        check_path(task_folder)
+        return task_folder
+    
+    def get_expTaskSlices_folder(self, taskName):
+        """
+        获取扩增任务切片文件夹
+        """
+        task_slices_folder = os.path.join(get_expansion_workspace(), taskName, 'slices')
+        check_path(task_slices_folder)
+        return task_slices_folder
+    
+    def get_expTaskSlices_zfolder(self, taskName, zIndex):
+        """
+        获取扩增任务切片SCS输出指定z切片文件夹
+        """
+        task_zfolder = os.path.join(get_expansion_workspace(), taskName, 'slices', f'z_{zIndex}')
+        check_path(task_zfolder)
+        return task_zfolder
+    
+    def get_expTask_result_folder(self, taskName, zIndex):
+        """
+        获取扩增任务结果文件夹
+        """
+        task_result_folder = os.path.join(get_expansion_workspace(), taskName, 'slices', f'z_{zIndex}', 'result', 'cell_mask')
+        check_path(task_result_folder)
+        return task_result_folder
+    
+    def get_expTaskMetadata_path(self, taskName):
+        """
+        获取扩增任务元数据文件路径
+        """
+        task_metadata_path = os.path.join(get_expansion_workspace(), taskName, 'metadata.json')
+        return task_metadata_path
+        
     def save_expansion_task(self, userName, taskName, mode, patchsize, binsize, epochs, diameter, neighbor):
         """
         保存用户创建的任务清单
@@ -90,19 +143,26 @@ class ExpansionData:
         exp_workspace = get_expansion_workspace()
         task_folder = os.path.join(exp_workspace, taskName)
         check_path(task_folder)
+        slices_folder = os.path.join(task_folder, 'slices')
+        check_path(slices_folder)
         segTask = segData.read_taskinfo(taskName)
         slices = [
             {
                 'z': task['z'],
+                'image': task['image'],
+                'gem': task['gem'],
                 'registration': task['registration'],
                 'segmentation': task['segmentation'],
                 'preprocess': {'status': 'warning', 'text': 'waiting'},
                 'train': {'status': 'warning', 'text': 'waiting'},
                 'postprocess': {'status': 'warning', 'text': 'waiting'},
+                'patchprocess': {'status': 'warning', 'text': '0/0'},
             }
             for task in segTask['data']
         ]
         metadata = {
+            'running': False,
+            'taskName': taskName,
             'creator': userName,
             'mode': mode,
             'patchSize': patchsize,
@@ -111,7 +171,8 @@ class ExpansionData:
             'diameter': diameter,
             'neighbors': neighbor,
             'progress': 0,
-            'slices': slices
+            'slices': slices,
+            'exception': None
         }
         output_path = os.path.join(task_folder, 'metadata.json')
         write_json(output_path, metadata)

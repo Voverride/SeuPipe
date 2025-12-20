@@ -6,26 +6,60 @@ import re
 import plotly.express as px
 from dash import Patch
 import shutil
+from dash import no_update
 import pickle
+from dataManager.segmentation_d import segData
 import plotly.graph_objects as go
 from utils.commonfuc import *
 
 class MaskViewerData:
     def __init__(self):
-        self._userdata = {} # {usrname: Anndata}
-    def get_contrast_mask_contour_figure(self, showMask=True, showContour=False):
+        self.export_task = {} # key:username, value:{taskname:'', type:''}
+
+    def set_export_task(self, taskname, type):
         """
-        获取两种算法分割结果对比图
+        设置用户导出任务
         """
-        ad = self.get_user_adata()
-        stain = ad.layers['stain']
-        cellpose_mask = ad.uns['cellpose_mask']
-        cellpose_contour = ad.uns['cellpose_contour']
-        watershed_mask = ad.uns['watershed_mask']
-        watershed_contour = ad.uns['watershed_contour']
-        cellpose_fig = self.get_mask_contour_figure(stain, cellpose_mask, cellpose_contour, title='Cellpose Mask', showcontour=showContour, showmask=showMask)
-        watershed_fig = self.get_mask_contour_figure(stain, watershed_mask, watershed_contour, title='Watershed Mask', showcontour=showContour, showmask=showMask)
-        return cellpose_fig, watershed_fig
+        username = self.get_username()
+        self.export_task[username] = {
+            'taskname': taskname,
+            'type': type
+        }
+
+    def get_export_task(self):
+        """
+        获取当前用户导出任务
+        """
+        username = self.get_username()
+        if username in self.export_task:
+            return self.export_task[username]
+        return {}
+
+    def get_username(self):
+        """
+        获取当前用户名
+        """
+        userInfo = search_user(usrhost = get_host())[0]
+        return userInfo['usrname']
+    
+    def get_graph(self, task, slice, graphName, showMask=True, showContour=False):
+        """
+        获取分割图像
+        """
+        if task and slice and graphName:
+            slice_index = slice.split("_")[1]
+            stain_path = segData.get_seg_stain_figure_path(task, slice_index)
+            figure_folder = segData.get_seg_figure_folder(task, slice_index)
+            mask_path = os.path.join(figure_folder, f'{graphName}_mask.pkl')
+            contour_path = os.path.join(figure_folder, f'{graphName}_contour.pkl')
+            if os.path.exists(stain_path) and os.path.exists(contour_path) and os.path.exists(mask_path):
+                mask = read_pkl(mask_path)
+                contour = read_pkl(contour_path)
+                stain = read_pkl(stain_path)
+                return self.get_mask_contour_figure(stain, mask, contour, title=graphName, showmask=showMask, showcontour=showContour)
+            return no_update
+
+        return no_update
     def get_mask_contour_figure(self, stain, mask, contour, title=None, showmask=True, showcontour=False, mask_opacity=0.7):
         """
         获取stain， mask，contour， 叠加交互图
@@ -49,54 +83,43 @@ class MaskViewerData:
         ))
         return fig
     
-    def get_user_adata(self):
-        usrname = self.get_request_usrname()
-        if usrname in self._userdata:
-            return self._userdata[usrname]
-        else:
-            return None
+    def get_figure_types(self, taskname, slice):
+        """
+        获取任务切片的图像类型
+        """
+        slice_index = slice.split("_")[1]
+        figure_folder = segData.get_seg_figure_folder(taskname, slice_index)
+        figure_types = set()
+        for fname in os.listdir(figure_folder):
+            if '_' in fname:
+                figure_type = fname.split("_")[0]
+                figure_types.add(figure_type)
+        figure_types = list(figure_types)
+        figure_types.sort()
+        return figure_types
 
-    def get_registration_figure(self):
+    def get_registration_figure(self, taskname, slice):
         """
         获取配准前与配准后图像
         """
-        ad = self.get_user_adata()
-        before_fig = get_imgfig_withplotly(ad.uns['before'], title='Before Aligned')
-        aligned_fig = get_imgfig_withplotly(ad.uns['aligned'], title='After Aligned')
+        slice_index = slice.split("_")[1]
+        before_path = segData.get_registration_before_path(taskname, slice_index)
+        aligned_path = segData.get_registration_aligned_path(taskname, slice_index)
+        before = read_pkl(before_path)
+        aligned = read_pkl(aligned_path)
+        before_fig = get_imgfig_withplotly(before, title='Before Aligned')
+        aligned_fig = get_imgfig_withplotly(aligned, title='After Aligned')
         return before_fig, aligned_fig
-    def read_slice_adata(self, taskname, slice):
-        """
-        读取切片h5ad
-        """
-        seg_path = get_segmentation_workspace()
-        task_path = os.path.join(seg_path, taskname)
-        slice_path = os.path.join(task_path, 'slices', str(slice)+'.h5ad')
-        adata_path = sc.read_h5ad(slice_path)
-        usrname = self.get_request_usrname()
-        self._userdata[usrname] = adata_path
 
-    def get_request_usrname(self):
-        """
-        获取请求的用户名
-        """
-        host = get_host()
-        user = search_user(usrhost=host)
-        if len(user)==0:
-            return None
-        username = user[0]['usrname']
-        return username
     def get_task_slices(self, taskname):
         """
         获取任务切片列表
         """
-        seg_path = get_segmentation_workspace()
-        task_path = os.path.join(seg_path, taskname)
-        if os.path.exists(task_path):
-            slice_path = os.path.join(task_path, 'slices')
-            if os.path.exists(slice_path):
-                slices = [s.split(".")[0] for s in os.listdir(slice_path)]
-                slices = sorted(slices, key=lambda x: int(re.search(r'\d+', x).group()))
-                return slices
+        slice_folder = segData.get_seg_slice_folder(taskname)
+        if os.path.exists(slice_folder):
+            slices = os.listdir(slice_folder)
+            slices = sorted(slices, key=lambda x: int(re.search(r'\d+', x).group()))
+            return slices
         return []
 
     def get_exist_tasks(self):

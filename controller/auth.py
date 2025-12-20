@@ -70,28 +70,19 @@ def verify_user(usrname:str, password:str=None)->bool:
     
     return access
 
-def verify_host()->None:
+def verify_host(host=None) -> bool:
     """
-    Verifies the host and updates the session properties for the user.
-
-    This function checks whether the admin user exists in the database and creates one if not.
-    It also checks the current host and determines whether the user should be allowed to log in
-    based on their status and host. The session properties are updated accordingly.
-
-    If the user is not found or disabled, the login box is shown, otherwise, the user's information
-    is loaded into the session.
-
-    Returns:
-        None
+    验证用户登录状态
     """
     if not search_user(usrname=admin):
         add_user(admin, 2)
-    
-    host = get_host()
+    if host is None:
+        host = get_host()
     user = search_user(usrhost=host)
     
     if not user or user[0]['disabled']:
-        set_props('login-box', dict(visible=True))
+        return False
+    return True
 
 def restore_usrinfo()->None:
     """

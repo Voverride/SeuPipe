@@ -8,6 +8,6 @@ control_panel = html.Div(
 content_panel = html.Div(
     fac.AntdEmpty(
         description=fac.AntdText('当前页面开发中', type='secondary'),
-        imageStyle={'height': 250},
+        styles={'image': {'height': 250}}
     )
 )

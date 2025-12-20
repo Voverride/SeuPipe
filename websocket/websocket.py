@@ -1,10 +1,12 @@
 import asyncio
 import websockets
 from utils.commonfuc import get_local_ip
+from websocket.message import ms
 
 class WebSocket:
     def __init__(self):
-        self.connected_clients = {}  # 存储所有连接的客户端, key:username, value:websocket
+        self.clients = set()  # 存储所有ws连接
+
     def run(self):
         """
         启动WebSocket服务
@@ -20,15 +22,19 @@ class WebSocket:
         """
         处理每个WebSocket连接
         """
-        print(f"新连接: {websocket.remote_address}")
+        websocket.curMenuItem = None
+        self.clients.add(websocket)
+        await ms.serverSend(ms._loginState_s2c, websocket, self)
         try:
             async for message in websocket:
-                # 广播给所有人
-                for client in self.connected_clients.values():
-                    await client.send(f"Broadcast: {message}")  # 👈 发给所有人
+                await ms.serverParse(message, websocket, self)
         finally:
-            # 清理断开的连接
-            # connected_clients.remove(websocket)
-            pass
+            self.clients.remove(websocket)
+    
+    async def notifyUpdateExpansionStatus(self, operation, key, value):
+        """
+        通知所有处于扩增任务页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateExpansionStatus_s2c, ws=self)
 
 ws = WebSocket()

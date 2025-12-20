@@ -2,6 +2,7 @@ from dash import html, callback, Input, State, Output, no_update
 from dash.exceptions import PreventUpdate
 import feffery_antd_components as fac
 from controller.auth import verify_user
+from websocket.message import ms
 import os
 import getpass
 
@@ -88,7 +89,7 @@ login_box = fac.AntdModal(
     maskClosable=False,
     forceRender=True,
     destroyOnClose=False,
-    maskStyle={'backgroundColor':'#5F9EA0'},
+    styles={'mask': {'backgroundColor':'#5F9EA0'}},
     title='User Login'
 )
 
@@ -124,12 +125,14 @@ def usr_login(nClicks, key, password, passcode):
             usrname = os.getlogin()
             access = verify_user(usrname, password)
             if access:
+                ms.clinetSend(ms._login_c2s)
                 notice = fac.AntdMessage(content='Login Successfully. Welcome !', type='success')  
             else:
                 notice = fac.AntdMessage(content='Incorrect password. Please try again.', type='error')
         else:
             access = verify_user(passcode)
             if access:
+                ms.clinetSend(ms._login_c2s)
                 notice = fac.AntdMessage(content='Login Successfully. Welcome !', type='success')  
             else:
                 notice = fac.AntdMessage(content='Invalid passcode. Please try again.', type='error')

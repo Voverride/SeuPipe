@@ -90,7 +90,7 @@ control_panel = html.Div(
             direction='vertical',
             style={'width':'100%'},
         ),
-        headStyle={'display': 'none'},
+        styles={'header': {'display': 'none'}},
         style={'height':'93vh', 'maxHeight': '93vh','overflowY': 'auto'},
     ), 
     id='annotation-control_panel',

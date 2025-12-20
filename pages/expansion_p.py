@@ -154,8 +154,6 @@ control_panel = html.Div(
         fac.AntdSpace(
             [
                 dcc.Interval(id="init-restore-expansion", interval=1, max_intervals=1),
-                dcc.Interval(interval=1000, disabled=True, id='expansion-interval'),
-                dcc.Interval(id="expansion-event-loop", interval=1000),
                 new_task_modal,
                 fac.AntdButton(
                     'Create New Task', 
@@ -185,7 +183,7 @@ control_panel = html.Div(
             direction='vertical',
             style={'width':'100%'},
         ),
-        headStyle={'display': 'none'},
+        styles={'header': {'display': 'none'}},
         style={'height':'93vh', 'maxHeight': '93vh','overflowY': 'auto'},
     ), 
     id='expand-control_panel',
@@ -270,11 +268,12 @@ content_panel = html.Div(
             fac.AntdTable(
                 columns=[
                     {'title': 'z', 'dataIndex': 'z', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
-                    {'title': 'registration','dataIndex': 'registration', 'group': 'Segmentation', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
-                    {'title': 'segmentation','dataIndex': 'segmentation', 'group': 'Segmentation', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
-                    {'title': 'preprocess','dataIndex': 'preprocess', 'group': 'Expansion', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
-                    {'title': 'train','dataIndex': 'train', 'group': 'Expansion', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
-                    {'title': 'postprocess','dataIndex': 'postprocess', 'group': 'Expansion', 'width':'18%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'registration','dataIndex': 'registration', 'group': 'Segmentation', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'segmentation','dataIndex': 'segmentation', 'group': 'Segmentation', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'preprocess','dataIndex': 'preprocess', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'train','dataIndex': 'train', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'postprocess','dataIndex': 'postprocess', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'patchprocess','dataIndex': 'patchprocess', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                 ],
                 conditionalStyleFuncs={ 
                     label: """

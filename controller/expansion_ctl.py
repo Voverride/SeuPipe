@@ -1,6 +1,37 @@
 from controller.auth import *
 from dataManager.expansion_d import expData
 from dataManager.segmentation_d import segData
+from websocket.message import ms
+from websocket.websocket import ws
+from controller.notice import *
+import threading
+
+from api.expansion import *
+
+def start_expansion_with_taskname(taskName):
+    """
+    启动胞域扩增任务
+    """
+    segInfo = segData.read_taskinfo(taskName)
+    segMetadata = segInfo['metadata']
+    progress = segMetadata.get('progress', 0)
+    if progress < 1:
+        set_head_notice('Please wait for the segmentation task to complete !', type='warning')
+    else:
+        expData.create_running_task(taskName, ws.notifyUpdateExpansionStatus)
+        thread = threading.Thread(
+            target=run_scs, 
+            args=(taskName,)
+        )
+        thread.start()
+
+def raise_runtime_bug(taskName):
+    """
+    抛出运行时的异常
+    """
+    taskinfo = expData.read_taskinfo(taskName)
+    exception = taskinfo['exception']
+    set_aside_notice('Task Error', exception, 'error')
 
 def update_table_metadata_with_taskname(taskName):
     """
@@ -8,6 +39,10 @@ def update_table_metadata_with_taskname(taskName):
     """
     metadata = expData.read_taskinfo(taskName)
     slices = metadata.pop('slices', [])
+    if metadata['exception'] is not None:
+        set_props('exp-bug-panel', dict(style={'display':'flex'}))
+    else:
+        set_props('exp-bug-panel', dict(style={'display':'none'}))
     set_props('exp-table-metadata', dict(data=[metadata]))
     set_props('exp-table-tasklist', dict(data=slices))
 
