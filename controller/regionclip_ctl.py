@@ -11,12 +11,13 @@ import re
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+from utils.commonfuc import compress_image
 
-def get_clipped_images(taskName, slicename, clipName, x_start, x_end, y_start, y_end):
+def get_clipped_images(taskName, slicename, clipName, row_start, row_end, col_start, col_end):
     """
     获取指定任务和切片的裁剪图像
     """
-    clipData.clip_image(taskName, slicename, clipName, x_start, x_end, y_start, y_end)
+    clipData.clip_image(taskName, slicename, clipName, row_start, row_end, col_start, col_end)
     stain_path = clipData.get_task_clipName_stain_path(taskName, slicename, clipName)
     gem_image_path = clipData.get_task_clipName_gemImage_path(taskName, slicename, clipName)
     stain_src = get_image_base64(stain_path)
@@ -28,7 +29,8 @@ def get_image_base64(image_path):
     将图像文件转换为 base64 编码的字符串
     """
     img = iio.imread(image_path)
-    return convert_mtx_to_base64_image(img)
+    compressed_img, _ = compress_image(img)
+    return convert_mtx_to_base64_image(compressed_img)
 def convert_mtx_to_base64_image(mtx):
     """
     将矩阵转换为 base64 编码的 PNG 图像
@@ -102,23 +104,16 @@ def get_slice_figure(taskname, slicename):
     """
     获取指定任务和切片的图像数据
     """
-    taskInfo = clipData.get_slice_info(taskname, slicename)
+    img = clipData.get_stain_img(taskname, slicename)
+    if img is None:
+        return no_update
     stain_fig = no_update
-    if taskInfo is not None:
-        img_path = taskInfo.get('image', None)
-        if img_path is not None:
-            img = iio.imread(img_path)
-            stain_fig = px.imshow(
-                img,
-                color_continuous_scale='gray',
-                binary_format="jpeg",
-                binary_compression_level=5
-            )
-            stain_fig.update_layout(
-                coloraxis_showscale=False,
-                xaxis_visible=False,
-                yaxis_visible=False
-            )
+    stain_fig = px.imshow(img, color_continuous_scale='gray')
+    stain_fig.update_layout(
+        coloraxis_showscale=False,
+        xaxis_visible=False,
+        yaxis_visible=False
+    )
     return stain_fig
 
 def delete_task_from_disk(taskName):

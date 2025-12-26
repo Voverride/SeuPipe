@@ -6,10 +6,10 @@ from dash.exceptions import PreventUpdate
 from dataManager.workspace import set_workpase
 from controller.auth import verify_modify_permission
 from controller.notice import set_aside_notice
-from controller.alignment_ctl import read_alignment_file, export_alignment_file
-from controller.annotation_ctl import read_annotask_refdata, read_annotask_querydata, export_annotation_file
-from controller.segmentation_ctl import read_tasklist_file
-from controller.maskviewer_ctl import export_maskviewer_file
+# from controller.alignment_ctl import read_alignment_file, export_alignment_file
+# from controller.annotation_ctl import read_annotask_refdata, read_annotask_querydata, export_annotation_file
+# from controller.segmentation_ctl import read_tasklist_file
+# from controller.maskviewer_ctl import export_maskviewer_file
 from controller.regionclip_ctl import read_regionclip_file
 import os
 

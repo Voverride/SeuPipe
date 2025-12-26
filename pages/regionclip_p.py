@@ -129,7 +129,7 @@ control_panel = html.Div(
                 ),
                 fac.AntdSpace(
                     [
-                        fac.AntdText('Select Clip'),
+                        fac.AntdText('Select Clip', id='clip-text-clip'),
                         fac.AntdButton(
                             id='clip-add-clipName',
                             size='small',
@@ -226,24 +226,34 @@ content_panel = html.Div(
                         {
                             'children': fac.AntdSpace(
                                 [
-                                    fac.AntdText('Image Clip'),
-                                    fac.AntdImage(
-                                        src='',
-                                        height='calc(35vh - 17px)',
-                                        id='clip-stain-image',
-                                        style={'visibility':'hidden'}
+                                    fac.AntdRibbon(
+                                        fac.AntdImage(
+                                            src='',
+                                            height='calc(38vh - 17px)',
+                                            id='clip-stain-image',
+                                            style={'visibility':'hidden'}
+                                        ),
+                                        color='#698aab',
+                                        placement='start',
+                                        text='Clipped Image',
+                                        style={'width':'105px'}
                                     ),
-                                    fac.AntdText('GEM Clip'),
-                                    fac.AntdImage(
-                                        src='',
-                                        height='calc(35vh - 17px)',
-                                        id='clip-gem-image',
-                                        style={'visibility':'hidden'}
-                                    )
+                                    fac.AntdRibbon(
+                                        fac.AntdImage(
+                                            src='',
+                                            height='calc(38vh - 17px)',
+                                            id='clip-gem-image',
+                                            style={'visibility':'hidden'}
+                                        ),
+                                        color='#ca8269',
+                                        placement='start',
+                                        text='Clipped GEM',
+                                        style={'width':'105px'}
+                                    ),
                                 ],
                                 direction='vertical',
                                 size='middle',
-                                style={'height':'100%', 'width':'100%','display': 'flex', 'alignItems': 'center'}              
+                                style={'height':'100%', 'width':'100%','display': 'flex', 'alignItems': 'center', 'justifyContent':'center'}              
                             ),
                             'collapsible': True,
                             'defaultSize': '30%',

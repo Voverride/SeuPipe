@@ -22,6 +22,80 @@ from utils.colors import *
 from dataManager.workspace import *
 import random
 import pickle
+import cv2
+
+def compress_image(image, target_height=1024, target_width=1024):
+    """
+    将单通道图像压缩到指定尺寸，并返回区域映射函数。
+
+    参数:
+        image (np.ndarray): 原始单通道图像，shape (H, W)
+        target_height (int): 目标高度
+        target_width (int): 目标宽度
+
+    返回:
+        compressed_img (np.ndarray): 压缩后的图像 (target_height, target_width)
+        map_region_to_original (function): 
+            输入:
+                top_left = (i1, j1)  # 压缩图中区域左上角（包含）
+                bottom_right = (i2, j2)  # 压缩图中区域右下角（包含）
+            输出:
+                (orig_top_left, orig_bottom_right)
+                其中 orig_top_left = (orig_i1, orig_j1)
+                      orig_bottom_right = (orig_i2, orig_j2)
+                所有坐标均为整数，且在原始图像范围内，闭区间（包含端点）
+    """
+    assert len(image.shape) == 2, "图像必须是单通道（2D）"
+    orig_h, orig_w = image.shape
+
+    if orig_h <= target_height and orig_w <= target_width:
+        return image, lambda i1, j1, i2, j2: (i1, j1, i2, j2)
+    compressed_img = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
+    scale_h = orig_h / target_height
+    scale_w = orig_w / target_width
+
+    def map_region_to_original(i1, j1, i2, j2):
+        """
+        将压缩图中的闭区间矩形区域映射回原图的闭区间区域。
+
+        参数:
+            (i1, j1) —— 压缩图左上角，包含
+            (i2, j2) —— 压缩图右下角，包含
+
+        返回:
+            orig_i1, orig_j1, orig_i2, orig_j2
+            所有坐标为整数，闭区间，不越界。
+        """
+        if not (0 <= i1 <= i2 < target_height and 0 <= j1 <= j2 < target_width):
+            raise ValueError(
+                f"无效区域：top_left=({i1},{j1}), bottom_right=({i2},{j2})，"
+                f"图像尺寸为 {target_height}x{target_width}"
+            )
+
+        orig_i_start_f = i1 * scale_h
+        orig_i_end_f   = (i2 + 1) * scale_h
+        orig_j_start_f = j1 * scale_w
+        orig_j_end_f   = (j2 + 1) * scale_w
+
+        orig_i1 = int(np.floor(orig_i_start_f))
+        orig_i2 = int(np.ceil(orig_i_end_f) - 1)
+        orig_j1 = int(np.floor(orig_j_start_f))
+        orig_j2 = int(np.ceil(orig_j_end_f) - 1)
+
+        orig_i1 = max(0, orig_i1)
+        orig_j1 = max(0, orig_j1)
+        orig_i2 = min(orig_h - 1, orig_i2)
+        orig_j2 = min(orig_w - 1, orig_j2)
+
+        if orig_i1 > orig_i2:
+            orig_i2 = orig_i1
+        if orig_j1 > orig_j2:
+            orig_j2 = orig_j1
+
+        return orig_i1, orig_j1, orig_i2, orig_j2
+
+    return compressed_img, map_region_to_original
 
 def write_pkl(obj, filepath):
     """

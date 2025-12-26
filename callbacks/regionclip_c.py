@@ -9,6 +9,9 @@ from dash.exceptions import PreventUpdate
     Input('clip-select-slice', 'value'),
     Input('clip-select-clipname', 'value'),
     State('clip-select-taskname', 'value'),
+    running=[
+        (Output('clip-select-clipname', 'disabled'), True, False),
+    ],
     prevent_initial_call=True
 )
 def update_clipped_images(slicename, clipName, taskName):
@@ -16,6 +19,8 @@ def update_clipped_images(slicename, clipName, taskName):
     基于切片和裁剪名称更新裁剪图像
     """
     if not taskName or not slicename or not clipName:
+        set_props('clip-stain-image', dict(style={'visibility':'hidden'}))
+        set_props('clip-gem-image', dict(style={'visibility':'hidden'}))
         return no_update, no_update
     stain_path = clipData.get_task_clipName_stain_path(taskName, slicename, clipName)
     gem_image_path = clipData.get_task_clipName_gemImage_path(taskName, slicename, clipName)
@@ -62,14 +67,14 @@ def start_clip(nc, relayoutData, taskName, slicename, clipName):
     if not clipName:
         set_head_notice('Please select a clip name first!', type='warning')
         return no_update, no_update
-    x_start = int(relayoutData.get('xaxis.range[0]', 0))
-    x_end = int(relayoutData.get('xaxis.range[1]', 0))
-    y_start = int(relayoutData.get('yaxis.range[1]', 0))
-    y_end = int(relayoutData.get('yaxis.range[0]', 0))
-    if (x_start >= x_end or y_start >= y_end):
+    row_start = int(relayoutData.get('yaxis.range[1]', 0))
+    row_end = int(relayoutData.get('yaxis.range[0]', 0))
+    col_start = int(relayoutData.get('xaxis.range[0]', 0))
+    col_end = int(relayoutData.get('xaxis.range[1]', 0))
+    if (row_start >= row_end or col_start >= col_end):
         set_head_notice('Invalid clip region selected!', type='error')
         return no_update, no_update
-    stain_src, gem_src = get_clipped_images(taskName, slicename, clipName, x_start, x_end, y_start, y_end)
+    stain_src, gem_src = get_clipped_images(taskName, slicename, clipName, row_start, row_end, col_start, col_end)
     set_props('clip-stain-image', dict(style=None))
     set_props('clip-gem-image', dict(style=None))
     return stain_src, gem_src
@@ -116,18 +121,21 @@ def update_orifig_clipnames(slicename, taskname):
 @callback(
     Output('clip-select-slice', 'value'),
     Output('clip-select-slice', 'options'),
-    Input('clip-select-taskname', 'value')
+    Output('clip-select-clipname', 'value', allow_duplicate=True),
+    Output('clip-select-clipname', 'options', allow_duplicate=True),
+    Input('clip-select-taskname', 'value'),
+    prevent_initial_call=True
 )
 def update_slicelist_options(taskname):
     """
-    基于任务更新切片列表
+    基于任务更新切片列表, 重置clipname
     """
     if taskname:
         slices = list(clipData.get_task_slices(taskname))
         slices.sort()
         slice = slices[0] if slices else None
-        return slice, slices
-    return no_update, no_update
+        return slice, slices, None, []
+    return no_update, no_update, None, []
 
 @callback(
     Output('clip-select-clipname', 'options', allow_duplicate=True),

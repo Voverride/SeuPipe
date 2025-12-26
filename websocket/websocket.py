@@ -2,6 +2,7 @@ import asyncio
 import websockets
 from utils.commonfuc import get_local_ip
 from websocket.message import ms
+from setting import setting
 
 class WebSocket:
     def __init__(self):
@@ -12,7 +13,7 @@ class WebSocket:
         启动WebSocket服务
         """
         async def startWebSocketServer():
-            host, port = get_local_ip(), 8765
+            host, port = get_local_ip(), setting.ws_port
             print(f"✅ Starting WebSocket server on ws://{host}:{port}")
             async with websockets.serve(self.handleConnect, host, port):
                 await asyncio.Future()
