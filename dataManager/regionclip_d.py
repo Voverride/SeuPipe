@@ -2,12 +2,15 @@ from dataManager.workspace import *
 from controller.auth import get_host
 from dataManager.users import search_user
 import shutil
+from websocket.websocket import ws
 import numpy as np
 import pandas as pd
 import imageio.v3 as iio
 import pickle
+from utils.observer import observer
 import cachetools
-from utils.commonfuc import compress_image, write_json
+from functools import partial
+from utils.commonfuc import compress_image, write_json, read_json
 
 class RegionClipData:
     def __init__(self):
@@ -19,23 +22,110 @@ class RegionClipData:
         #         'z': {'z', 'image', 'gem'}
         #     },
         # }
-        self._gemCache = cachetools.TTLCache(maxsize=10, ttl=18000)
-        self._imgCache = cachetools.TTLCache(maxsize=10, ttl=18000)
+        self._gemCache = cachetools.TTLCache(maxsize=10, ttl=1800)
+        self._imgCache = cachetools.TTLCache(maxsize=10, ttl=1800)
         self._cordMapFunc = {}
+        self._runningTask = {}
+        self._max_threads = 5
+        self._threads = {}
+        # threads = {
+        #     'username': {
+        #         'active': {
+        #             'key': 'thread'
+        #         },
+        #         'pending': {
+        #             'key': 'thread'
+        #         }
+        #     }
+        # }
+        self._notifyfunc = 'notifyfunc'
+        
+    def add_thread(self, key, thread):
+        """
+        添加线程
+        """
+        username = self.get_request_usrname()
+        if username not in self._threads:
+            self._threads[username] = {
+                'active': {},
+                'pending': {}
+            }
+        active = self._threads[username]['active']
+        pending = self._threads[username]['pending']
+        if len(active) < self._max_threads:
+            thread.start()
+            active[key] = thread
+        else:
+            pending[key] = thread
 
-    def set_cord_map_func(self, func):
+    def add_running_task(self, taskName, slice, clipName):
+        """
+        添加运行中的任务
+        """
+        key = f'{taskName}_{slice}_{clipName}'
+        username = self.get_request_usrname()
+        status = self.read_taskclip_status(taskName, clipName, slice)
+        status['operator'] = username
+        status['running'] = True
+        status[self._notifyfunc] = ws.notifyUpdateRegionClipStatus
+        observed_status = observer.observe(
+            status, 
+            status[self._notifyfunc], 
+            taskName=taskName,
+            slice=slice,
+            clipName=clipName
+        )
+        self._runningTask[key] = observed_status
+        self._runningTask[key]['exception'] = None
+    
+    def remove_running_task(self, taskName, slice, clipName):
+        """
+        删除运行中的任务
+        """
+        key = f'{taskName}_{slice}_{clipName}'
+        if key not in self._runningTask:
+            return
+        observed_status = self._runningTask[key]
+        username = observed_status['operator']
+        notify_func = observed_status[self._notifyfunc]
+        active = self._threads[username]['active']
+        pending = self._threads[username]['pending']
+        observer.disobserve(observed_status, notify_func)
+        del self._runningTask[key]
+        if key in active:
+            del active[key]
+            if len(active) < self._max_threads:
+                for key, thread in pending.items():
+                    if key in active:
+                        continue
+                    thread.start()
+                    active[key] = thread
+                    del pending[key]
+                    if len(active) >= self._max_threads:
+                        break
+
+    def has_running_task(self, taskName, slice, clipName):
+        """
+        判断任务是否正在运行
+        """
+        key = f'{taskName}_{slice}_{clipName}'
+        if key not in self._runningTask:
+            return False
+        return self._runningTask[key]['running']
+
+    def set_cord_map_func(self, taskName, sliceName, func):
         """
         设置用户获取坐标映射函数
         """
-        username = self.get_request_usrname()
-        self._cordMapFunc[username] = func
+        key = f'{taskName}_{sliceName}'
+        self._cordMapFunc[key] = func
 
-    def get_cord_map_func(self):
+    def get_cord_map_func(self, taskName, slicename):
         """
         用户获取坐标映射函数
         """
-        username = self.get_request_usrname()
-        return self._cordMapFunc.get(username, None)
+        key = f'{taskName}_{slicename}'
+        return self._cordMapFunc.get(key, None)
     
     def get_imgCache(self, taskName, slicename):
         """
@@ -57,12 +147,12 @@ class RegionClipData:
         self._imgCache[img_key] = img
         return img
 
-    def get_gemCache(self, taskName, slicename):
+    def get_gemCache(self, taskName, slicename, cache=False):
         """
         获取任务gem缓存
         """
         gem_key = f'{taskName}_{slicename}'
-        if gem_key in self._gemCache:
+        if cache and gem_key in self._gemCache:
             gem = self._gemCache[gem_key]
             # 重置缓存计时
             del self._gemCache[gem_key]
@@ -74,7 +164,8 @@ class RegionClipData:
             if gem_path is None:
                 return None
             gem = pd.read_csv(gem_path, sep='\t', comment='#')
-        self._gemCache[gem_key] = gem
+        if cache:
+            self._gemCache[gem_key] = gem
         return gem
 
     def get_stain_img(self, taskName, slicename):
@@ -83,82 +174,8 @@ class RegionClipData:
         """
         img = self.get_imgCache(taskName, slicename)
         compressd_img, cord_map_func = compress_image(img)
-        self.set_cord_map_func(cord_map_func)
+        self.set_cord_map_func(taskName, slicename, cord_map_func)
         return compressd_img
-
-    def clip_image(self, taskName, slicename, clipName, row_start, row_end, col_start, col_end):
-        """
-        裁剪染色图像和gem, 生成裁剪后gem热图缩略图, 并保存到指定目录
-        """
-        img = self.get_imgCache(taskName, slicename)
-        gem = self.get_gemCache(taskName, slicename)
-        if img is None or gem is None:
-            raise Exception('Invalid image or gem')
-        gem['x'] = gem['x'] - gem['x'].min()
-        gem['y'] = gem['y'] - gem['y'].min()
-        cordMapFunc = self.get_cord_map_func()
-        mapped_row_start, mapped_col_start, mapped_row_end, mapped_col_end = cordMapFunc(row_start, col_start, row_end, col_end)
-        clipped_img = img[mapped_row_start:mapped_row_end+1, mapped_col_start:mapped_col_end+1]
-        clipped_gem = gem[
-            gem['x'].between(mapped_row_start, mapped_row_end) & 
-            gem['y'].between(mapped_col_start, mapped_col_end)
-        ].copy()
-
-        clipped_image_folder = self.get_task_clipName_stain_folder(taskName, clipName)
-        clipped_gem_folder = self.get_task_clipName_gem_folder(taskName, clipName)
-        clipped_image_path = os.path.join(clipped_image_folder, f'{taskName}_z{slicename}_{clipName}.tif')
-        clipped_gem_path = os.path.join(clipped_gem_folder, f'{taskName}_z{slicename}_{clipName}.gem')
-        clipped_gem_image_path = os.path.join(clipped_gem_folder, f'{taskName}_z{slicename}_{clipName}.png')
-        clip_bounds_path = os.path.join(clipped_image_folder, f'{taskName}_z{slicename}_{clipName}_clip_bounds.json')
-        taskInfo = self.get_slice_info(taskName, slicename)
-        img_path = taskInfo.get('image', None)
-        gem_path = taskInfo.get('gem', None)
-
-        clip_bounds = {
-            'original_image': img_path,
-            'original_gem': gem_path,
-            'clipped_image': clipped_image_path,
-            'clipped_gem': clipped_gem_path,
-            'clip_bounds': {
-                'row_start': mapped_row_start,
-                'row_end': mapped_row_end,
-                'col_start': mapped_col_start,
-                'col_end': mapped_col_end
-            }
-        }
-        write_json(clip_bounds_path, clip_bounds)
-
-        clipped_gem['x'] = clipped_gem['x'] - mapped_row_start
-        clipped_gem['y'] = clipped_gem['y'] - mapped_col_start
-
-        iio.imwrite(clipped_image_path, clipped_img)
-        clipped_gem.to_csv(clipped_gem_path, sep='\t', index=False)
-
-        if clipped_gem.empty:
-            mtx = np.zeros((100, 100), dtype=np.uint8)
-        else:
-            countField = 'MIDCounts' if 'MIDCounts' in clipped_gem else 'MIDCount'
-            grouped = clipped_gem.groupby(['x', 'y'])[countField].sum().reset_index()
-
-            x_raw = grouped['x'].values
-            y_raw = grouped['y'].values
-            counts = grouped[countField].values
-
-            max_row, max_col = clipped_img.shape
-
-            mtx = np.zeros((max_row, max_col), dtype=np.float32)
-            mtx[x_raw, y_raw] = counts
-
-            mtx = np.log1p(mtx)
-
-            max_val = mtx.max()
-            if max_val > 0:
-                mtx = (mtx / max_val * 255).astype(np.uint8)
-            else:
-                mtx = mtx.astype(np.uint8)
-
-        iio.imwrite(clipped_gem_image_path, mtx, cmap='hot')
-        
     def get_request_usrname(self):
         """
         获取请求的用户名
@@ -190,8 +207,27 @@ class RegionClipData:
         if taskInfo is None:
             return []
         slices = list(taskInfo['data'].keys())
+        slices.sort()
         return slices
+    def get_output_imgName(self, taskName, sliceName, clipName):
+        """
+        获取输出图像文件名称
+        """
+        imgName = f'{taskName}_z{sliceName}_{clipName}.tif'
+        return imgName
     
+    def get_output_gemName(self, taskName, sliceName, clipName):
+        """
+        获取输出图像文件名称
+        """
+        imgName = f'{taskName}_z{sliceName}_{clipName}.gem'
+        return imgName
+    def get_output_gemImgName(self, taskName, sliceName, clipName):
+        """
+        获取输出图像文件名称
+        """
+        imgName = f'{taskName}_z{sliceName}_{clipName}.png'
+        return imgName
     def get_task_clipName_gemImage_path(self, taskName, sliceName, clipName):
         """
         获取任务裁剪项目下基因信息缩略图路径
@@ -199,7 +235,8 @@ class RegionClipData:
         if not taskName or not clipName:
             return None
         clip_gem_folder = self.get_task_clipName_gem_folder(taskName, clipName)
-        gem_image_path = os.path.join(clip_gem_folder, f'{taskName}_z{sliceName}_{clipName}.png')
+        gemImgName = self.get_output_gemImgName(taskName, sliceName, clipName)
+        gem_image_path = os.path.join(clip_gem_folder, gemImgName)
         if not os.path.exists(gem_image_path):
             return None
         return gem_image_path
@@ -211,7 +248,8 @@ class RegionClipData:
         if not taskName or not clipName:
             return None
         clip_gem_folder = self.get_task_clipName_gem_folder(taskName, clipName)
-        gem_path = os.path.join(clip_gem_folder, f'{taskName}_z{sliceName}_{clipName}.gem')
+        gemName = self.get_output_gemName(taskName, sliceName, clipName)
+        gem_path = os.path.join(clip_gem_folder, gemName)
         if not os.path.exists(gem_path):
             return None
         return gem_path
@@ -223,7 +261,8 @@ class RegionClipData:
         if not taskName or not clipName:
             return None
         clip_stain_folder = self.get_task_clipName_stain_folder(taskName, clipName)
-        stain_path = os.path.join(clip_stain_folder, f'{taskName}_z{sliceName}_{clipName}.tif')
+        imgName = self.get_output_imgName(taskName, sliceName, clipName)
+        stain_path = os.path.join(clip_stain_folder, imgName)
         if not os.path.exists(stain_path):
             return None
         return stain_path
@@ -296,6 +335,49 @@ class RegionClipData:
         if os.path.exists(clip_path):
             shutil.rmtree(clip_path)
 
+    def write_taskclip_status(self, taskName, clipName, slice, status):
+        """
+        写入任务裁剪项目切片状态
+        """
+        status_folder = self.get_task_clipName_status_folder(taskName, clipName)
+        status_path = os.path.join(status_folder, f'z_{slice}.json')
+        write_json(os.path.join(status_path), status)
+
+    def get_running_task_status(self, taskName, clipName, slice):
+        """
+        获取正在运行中的任务状态
+        """
+        key = f'{taskName}_{slice}_{clipName}'
+        if key in self._runningTask:
+            return self._runningTask[key]
+        return None
+
+    def read_taskclip_status(self, taskName, clipName, slice):
+        """
+        读取任务裁剪项目切片状态
+        """
+        status = self.get_running_task_status(taskName, clipName, slice)
+        if status is not None:
+            status = dict(status)
+            if self._notifyfunc in status:
+                del status[self._notifyfunc]
+            return status
+        status_folder = self.get_task_clipName_status_folder(taskName, clipName)
+        status_path = os.path.join(status_folder, f'z_{slice}.json')
+        if not os.path.exists(status_path):
+            return None
+        return read_json(status_path)
+
+    def get_task_clipName_status_folder(self, taskName, clipName):
+        """
+        获取任务裁剪项目状态目录
+        """
+        if not taskName or not clipName:
+            return None
+        clip_status_folder = os.path.join(self.get_task_clipName_folder(taskName, clipName), 'Status')
+        check_path(clip_status_folder)
+        return clip_status_folder
+
     def create_taskclip(self, taskName, clipName):
         """
         在当前任务下创建裁剪项目
@@ -308,7 +390,13 @@ class RegionClipData:
         clip_path = os.path.join(clips_folder, clipName)
         if not os.path.exists(clip_path):
             os.makedirs(clip_path)
-
+        slices = self.get_task_slices(taskName)
+        init_status = {
+            'running': False,
+            'exception': None
+        }
+        for slice in slices:
+            self.write_taskclip_status(taskName, clipName, slice, init_status)
     def delete_task(self, taskName):
         """
         从磁盘删除任务

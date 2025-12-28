@@ -4,6 +4,16 @@ from dash import set_props
 from flask import request
 from .notice import set_head_notice
 
+def get_request_usrname():
+    """
+    获取请求的用户名
+    """
+    host = get_host()
+    user = search_user(usrhost=host)
+    if len(user)==0:
+        return None
+    username = user[0]['usrname']
+    return username
 def verify_modify_permission()->bool:
     """
         Verifies whether the current user has permission to modify.

@@ -1,5 +1,6 @@
 from tinydb import TinyDB
 from tinydb import Query
+from setting import setting
 import os
 
 directory = 'database/'
@@ -11,6 +12,8 @@ table_name = 'workspace'
 table = db.table(table_name)
 if table_name not in db.tables():
     table.insert({'workspace':None})
+
+workspaceCache = dict()
 def set_workpase(workspace_path:str)->None:
     """
     Set workspace path
@@ -22,7 +25,7 @@ def set_workpase(workspace_path:str)->None:
     workspace_path = os.path.join(workspace_path, 'SeuPipeWorkspace')
     if not os.path.exists(workspace_path):
         os.makedirs(workspace_path)
-
+    workspaceCache['workspace'] = workspace_path
     table.update({'workspace':workspace_path})
     
 def get_workspace()->str:
@@ -32,9 +35,12 @@ def get_workspace()->str:
     Returns:
         str: The current workspace path.
     """
+    if 'workspace' in workspaceCache:
+        return workspaceCache['workspace']
     workspace = table.all()[0]['workspace']
     if workspace is not None:
         check_path(workspace)
+        workspaceCache['workspace'] = workspace
     return workspace
 def get_annotation_workspace()->str:
     path = os.path.join(get_workspace(), 'Annotation')
@@ -43,6 +49,11 @@ def get_annotation_workspace()->str:
 
 def get_expansion_workspace()->str:
     path = os.path.join(get_workspace(), 'Expansion')
+    check_path(path)
+    return path
+
+def get_cellselector_workspace()->str:
+    path = os.path.join(get_workspace(), setting.cellSelector)
     check_path(path)
     return path
 

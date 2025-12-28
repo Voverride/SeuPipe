@@ -24,6 +24,7 @@ class WebSocket:
         处理每个WebSocket连接
         """
         websocket.curMenuItem = None
+        websocket.params = {}
         self.clients.add(websocket)
         await ms.serverSend(ms._loginState_s2c, websocket, self)
         try:
@@ -32,10 +33,22 @@ class WebSocket:
         finally:
             self.clients.remove(websocket)
     
-    async def notifyUpdateExpansionStatus(self, operation, key, value):
+    async def notifyUpdateCellSelectorStatus(self, operation, key, value, **kwargs):
         """
-        通知所有处于扩增任务页面的用户更新状态
+        通知处于细胞选择页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateCellSelectorStatus_s2c, ws=self, **kwargs)
+    
+    async def notifyUpdateExpansionStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于扩增任务页面的用户更新状态
         """
         await ms.serverSend(ms._updateExpansionStatus_s2c, ws=self)
+    
+    async def notifyUpdateRegionClipStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于区域裁剪任务页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateRegionClipStatus_s2c, ws=self, **kwargs)
 
 ws = WebSocket()

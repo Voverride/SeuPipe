@@ -1,8 +1,77 @@
 from controller.regionclip_ctl import *
-from dash import callback, Input, Output, State, no_update, Patch
+from dash import callback, Input, Output, State, no_update
 from pages.components.fileSelecter import fileSelecter
-from dash.exceptions import PreventUpdate
+from websocket.message import ms
 
+@callback(
+    Input('clip-button-exportData', 'nClicks'),
+    State('clip-select-taskname-export', 'value'),
+    State('clip-select-clipname-export', 'value'),
+    prevent_initial_call=True
+)
+def export_regionclip_data(nc, taskName, clipName):
+    """
+    导出任务裁剪数据
+    """
+    if nc:
+        if taskName is None:
+            set_head_notice('Please select export task first!', type='warning')
+            return
+        if clipName is None:
+            set_head_notice('Please select export clip name first!', type='warning')
+            return
+        exportData, unCompleteSlices = export_clipped_data(taskName, clipName)
+        if exportData is None:
+            content = f'The following slices are not completed: '
+            for slice in unCompleteSlices:
+                content += f'{slice} '
+            set_aside_notice(
+                title='Warning',
+                type='warning',
+                content=content
+            )
+            return
+        set_props('clip-download-exportData', dict(data={
+            'filename': f'{taskName}_{clipName}.csv',
+            'content': exportData
+        }))
+
+@callback(
+    Input('clip-select-taskname', 'value'),
+    Input('clip-select-slice', 'value'),
+    Input('clip-select-clipname', 'value'),
+    prevent_initial_call=True
+)
+def update_regionclip_params(taskName, slice, clipName):
+    """
+    更新ws任务裁剪参数
+    """
+    ms.clinetSend(ms._updateParams_c2s, params=dict(
+        taskName=taskName,
+        sliceName=slice,
+        clipName=clipName
+    ))
+@callback(
+    Output('clip-select-clipname', 'value', allow_duplicate=True),
+    Input('refresh-clip-status', 'children'),
+    State('clip-select-clipname', 'value'),
+    prevent_initial_call=True
+)
+def update_regionclip_status(nc, clipName):
+    """
+    ws更新任务裁剪状态
+    """
+    return clipName
+@callback(
+    Input('clip-button-showBug', 'nClicks'),
+    State('clip-select-taskname', 'value'),
+    State('clip-select-slice', 'value'),
+    State('clip-select-clipname', 'value'),
+    prevent_initial_call=True
+)
+def show_bug(nc, taskName, slice, clipName):
+    if nc:
+        raise_runtime_bug(taskName, slice, clipName)
 @callback(
     Output('clip-stain-image', 'src', allow_duplicate=True),
     Output('clip-gem-image', 'src', allow_duplicate=True),
@@ -10,6 +79,7 @@ from dash.exceptions import PreventUpdate
     Input('clip-select-clipname', 'value'),
     State('clip-select-taskname', 'value'),
     running=[
+        (Output('clip-select-slice', 'disabled'), True, False),
         (Output('clip-select-clipname', 'disabled'), True, False),
     ],
     prevent_initial_call=True
@@ -21,6 +91,23 @@ def update_clipped_images(slicename, clipName, taskName):
     if not taskName or not slicename or not clipName:
         set_props('clip-stain-image', dict(style={'visibility':'hidden'}))
         set_props('clip-gem-image', dict(style={'visibility':'hidden'}))
+        set_props('clip-bug-panel', dict(style={'display':'none'}))
+        return no_update, no_update
+    is_running = clipData.has_running_task(taskName, slicename, clipName)
+    if is_running:
+        set_props('clip-bug-panel', dict(style={'display':'none'}))
+        set_props('clip-button-startClip', dict(loading=True))
+        set_props('clip-stain-image', dict(style={'visibility':'hidden'}))
+        set_props('clip-gem-image', dict(style={'visibility':'hidden'}))
+        return no_update, no_update
+
+    set_props('clip-button-startClip', dict(loading=False))
+    status = clipData.read_taskclip_status(taskName, clipName, slicename)
+    exception = status['exception']
+    if exception is None:
+        set_props('clip-bug-panel', dict(style={'display':'none'}))
+    else:
+        set_props('clip-bug-panel', dict(style={'display':'flex'}))
         return no_update, no_update
     stain_path = clipData.get_task_clipName_stain_path(taskName, slicename, clipName)
     gem_image_path = clipData.get_task_clipName_gemImage_path(taskName, slicename, clipName)
@@ -39,45 +126,38 @@ def update_clipped_images(slicename, clipName, taskName):
     return stain_src, gem_src
 
 @callback(
-    Output('clip-stain-image', 'src'),
-    Output('clip-gem-image', 'src'),
     Input('clip-button-startClip', 'nClicks'),
     State('clip-graph-original', 'relayoutData'),
     State('clip-select-taskname', 'value'),
     State('clip-select-slice', 'value'),
-    State('clip-select-clipname', 'value'),
-    running=[
-        (Output('clip-button-startClip', 'loading'), True, False)
-    ],
+    State('clip-select-clipname', 'value')
 )
 def start_clip(nc, relayoutData, taskName, slicename, clipName):
     """
     开始裁剪图像
     """
     if not nc:
-        return no_update, no_update
+        return
     if not verify_modify_permission():
-        return no_update, no_update
+        return
     if not taskName:
         set_head_notice('Please select a task first!', type='warning')
-        return no_update, no_update
+        return
     if not slicename:
         set_head_notice('Please select a slice first!', type='warning')
-        return no_update, no_update
+        return
     if not clipName:
         set_head_notice('Please select a clip name first!', type='warning')
-        return no_update, no_update
+        return
     row_start = int(relayoutData.get('yaxis.range[1]', 0))
     row_end = int(relayoutData.get('yaxis.range[0]', 0))
     col_start = int(relayoutData.get('xaxis.range[0]', 0))
     col_end = int(relayoutData.get('xaxis.range[1]', 0))
     if (row_start >= row_end or col_start >= col_end):
         set_head_notice('Invalid clip region selected!', type='error')
-        return no_update, no_update
-    stain_src, gem_src = get_clipped_images(taskName, slicename, clipName, row_start, row_end, col_start, col_end)
-    set_props('clip-stain-image', dict(style=None))
-    set_props('clip-gem-image', dict(style=None))
-    return stain_src, gem_src
+        return
+    set_props('clip-button-startClip', dict(loading=True))
+    start_clip_image(taskName, slicename, clipName, row_start, row_end, col_start, col_end)
 
 @callback(
     Input('clip-delete-task-confirm', 'confirmCounts'),
@@ -132,10 +212,40 @@ def update_slicelist_options(taskname):
     """
     if taskname:
         slices = list(clipData.get_task_slices(taskname))
-        slices.sort()
         slice = slices[0] if slices else None
         return slice, slices, None, []
     return no_update, no_update, None, []
+
+@callback(
+    Output('clip-select-clipname-export', 'value'),
+    Input('clip-select-taskname-export', 'value'),
+    prevent_initial_call=True
+)
+def reset_taskclip_export_value(taskName):
+    """
+    重置任务裁剪项目导出值
+    """
+    if not taskName:
+        return no_update
+    return None
+
+@callback(
+    Output('clip-select-clipname-export', 'options', allow_duplicate=True),
+    Input('clip-select-clipname-tooltip-export', 'open'),
+    State('clip-select-taskname-export', 'value'),
+    prevent_initial_call=True
+)
+def update_taskclip_export_options(open, taskName):
+    """
+    更新任务裁剪项目导出列表
+    """
+    if not taskName:
+        return no_update
+    if open:
+        clips = list(clipData.get_taskclips(taskName))
+        clips.sort()
+        return clips
+    return no_update
 
 @callback(
     Output('clip-select-clipname', 'options', allow_duplicate=True),
@@ -153,6 +263,21 @@ def update_tasklist_options(open, taskName):
         clips = list(clipData.get_taskclips(taskName))
         clips.sort()
         return clips
+    return no_update
+
+@callback(
+    Output('clip-select-taskname-export', 'options'),
+    Input('clip-select-taskname-tooltip-export', 'open'),
+    prevent_initial_call=True
+)
+def update_tasklist_export_options(open):
+    """
+    更新导出项目列表
+    """
+    if open:
+        tasks = list(clipData.get_exist_tasks())
+        tasks.sort()
+        return tasks
     return no_update
 
 @callback(

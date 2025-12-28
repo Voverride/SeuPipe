@@ -1,5 +1,58 @@
 from controller.auth import *
+from setting import setting
 import json
+
+async def serverSendUpdateCellSelectorStatus(key, websocket, ws, ms, **kwargs):
+    """
+    服务端发送更新细胞选择任务状态信息
+    """
+    project = kwargs.get('project', None)
+    slice = kwargs.get('slice', None)
+    data = dict(
+        key=key,
+        update=True,
+    )
+    for connected in ws.clients:
+        if connected.curMenuItem==setting.cellSelector:
+            ws_project = connected.params.get('project', None)
+            ws_slice = connected.params.get('slice', None)
+            if project==ws_project and slice==ws_slice:
+                await connected.send(json.dumps(data))
+
+def clientParseUpdateCellSelectorStatus(message, websocket, ws, ms, **kwargs):
+    """
+    客户端解析更新细胞选择任务状态信息
+    """
+    update = message.get('update', False)
+    if update:
+        set_props('refresh-sel-status', dict(children=None))
+
+async def serverSendUpdateRegionClipStatus(key, websocket, ws, ms, **kwargs):
+    """
+    服务端发送更新区域剪切任务状态信息
+    """
+    taskName = kwargs.get('taskName', None)
+    slice = kwargs.get('slice', None)
+    clipName = kwargs.get('clipName', None)
+    data = dict(
+        key=key,
+        update=True,
+    )
+    for connected in ws.clients:
+        if connected.curMenuItem=='RegionClip':
+            ws_taskName = connected.params.get('taskName', None)
+            ws_sliceName = connected.params.get('sliceName', None)
+            ws_clipName = connected.params.get('clipName', None)
+            if taskName==ws_taskName and slice==ws_sliceName and clipName==ws_clipName:
+                await connected.send(json.dumps(data))
+
+def clientParseUpdateRegionClipStatus(message, websocket, ws, ms, **kwargs):
+    """
+    客户端解析更新区域剪切任务状态信息
+    """
+    update = message.get('update', False)
+    if update:
+        set_props('refresh-clip-status', dict(children=None))
 
 async def serverSendUpdateExpansionStatus(key, websocket, ws, ms, **kwargs):
     """
@@ -22,11 +75,34 @@ def clientParseUpdateExpansionStatus(message, websocket, ws, ms, **kwargs):
     if update:
         set_props('init-restore-expansion', dict(disabled=False))
 
+def clinetSendUpdateParams(key, websocket, ws, ms, **kwargs):
+    """
+    客户端发送更新参数信息
+    """
+    params = kwargs.get('params', None)
+    if params is None:
+        return
+    data = dict(
+        key=key,
+        params=params,
+    )
+    set_props('ws', dict(send=json.dumps(data)))
+
+async def serverParseUpdateParams(message, websocket, ws, ms, **kwargs):
+    """
+    服务端解析更新参数信息
+    """
+    params = message.get('params', None)
+    if params is not None:
+        websocket.params = params
+
 def clinetSendUpdateMenuItem(key, websocket, ws, ms, **kwargs):
     """
     客户端发送更新菜单项信息
     """
     menuItem = kwargs.get('menuItem', None)
+    if menuItem is None:
+        return
     data = dict(
         key=key,
         menuItem=menuItem,

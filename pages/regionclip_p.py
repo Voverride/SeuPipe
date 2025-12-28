@@ -102,11 +102,11 @@ control_panel = html.Div(
                     style={'backgroundColor':'#698aab', 'width': '100%'}
                 ),
                 fac.AntdDivider(),
-                fac.AntdText('Select Task'),
+                fac.AntdText('Select Project'),
                 fac.AntdTooltip(
                     fac.AntdSelect(
                         id='clip-select-taskname',
-                        placeholder='Select Task',
+                        placeholder='Select Project',
                         debounceWait=300,
                         locale='en-us',
                         allowClear=False,
@@ -114,10 +114,12 @@ control_panel = html.Div(
                     ),
                     id='clip-select-taskname-tooltip',
                     open=False,
-                    title=fac.AntdText('Select Task'), 
+                    title=fac.AntdText('Select Project'), 
                     color='white'
                 ),
                 dcc.Store(id='clip-store-taskname', storage_type='local'),
+                html.Div(id="refresh-clip-status", style={'display':'none'}),
+
                 fac.AntdText('Select Slice', id='clip-text-slice'),
                 fac.AntdSelect(
                     id='clip-select-slice',
@@ -166,6 +168,46 @@ control_panel = html.Div(
                     open=False,
                     title=fac.AntdText('Select Clip'), 
                     color='white'
+                ),
+                fac.AntdDivider(),
+                fac.AntdText('Export Project'),
+                fac.AntdTooltip(
+                    fac.AntdSelect(
+                        id='clip-select-taskname-export',
+                        placeholder='Export Project',
+                        debounceWait=300,
+                        locale='en-us',
+                        allowClear=False,
+                        style={'width':'100%'}
+                    ),
+                    id='clip-select-taskname-tooltip-export',
+                    open=False,
+                    title=fac.AntdText('Export Project'), 
+                    color='white'
+                ),
+                fac.AntdText('Export Clip'),
+                fac.AntdTooltip(
+                    fac.AntdSelect(
+                        id='clip-select-clipname-export',
+                        placeholder='Export Clip',
+                        debounceWait=300,
+                        locale='en-us',
+                        allowClear=False,
+                        style={'width':'100%'}
+                    ),
+                    id='clip-select-clipname-tooltip-export',
+                    open=False,
+                    title=fac.AntdText('Export Clip'), 
+                    color='white'
+                ),
+                dcc.Download(id="clip-download-exportData"),
+                fac.AntdButton(
+                    'Export Data', 
+                    type='primary',
+                    id='clip-button-exportData',
+                    block=True,
+                    icon=fac.AntdIcon(icon='antd-save'),
+                    style={'backgroundColor':'#ca8269'}
                 )
             ],
             size='middle',
@@ -204,6 +246,21 @@ content_panel = html.Div(
                         okText='yes',
                         placement='bottomLeft',
                         title='Confirm Delete?'
+                    ),
+                    fac.AntdSpace(
+                        [
+                            fac.AntdButton(
+                                'Show Bug',
+                                id='clip-button-showBug',
+                                type='primary', 
+                                icon=fac.AntdIcon(icon='antd-bug'), 
+                                style={'backgroundColor':'#a87a76', 'display':'block'}
+                            ),
+                            fac.AntdText("🚨 Error occurred during clip. Click Show Bug for details !", style={'color':'#a87a76'}, strong=True)
+                        ],
+                        id='clip-bug-panel',
+                        size='middle',
+                        style={'display':'none'}
                     )
                 ],
                 size='middle',
@@ -217,7 +274,7 @@ content_panel = html.Div(
                                 dcc.Graph(
                                     id="clip-graph-original", 
                                     config={'displaylogo':False}, 
-                                    style={'visibility':'hidden', 'height':'calc(90vh - 50px)', 'width':'100%'}
+                                    style={'height':'calc(90vh - 50px)', 'width':'100%'}
                                 ),
                             ),
                             'collapsible': True,

@@ -9,7 +9,10 @@ class Message:
         self._login_c2s = 'login_c2s'
         self._syncLoginState_s2c = 'sync_login_state_s2c'
         self._updateMenuItem_c2s = 'update_menuitem_c2s'
+        self._updateParams_c2s = 'update_params_c2s'
         self._updateExpansionStatus_s2c = 'update_expansion_status_s2c'
+        self._updateRegionClipStatus_s2c = 'update_regionclip_status_s2c'
+        self._updateCellSelectorStatus_s2c = 'update_cellselector_status_s2c'
         self._handlers = {
             # 建立ws连接时检查登录状态
             self._loginState_s2c: {
@@ -41,10 +44,25 @@ class Message:
                 'send': clinetSendUpdateMenuItem,
                 'parse': serverParseUpdateMenuItem
             },
+            # 更新每个模块配置的参数
+            self._updateParams_c2s: {
+                'send': clinetSendUpdateParams,
+                'parse': serverParseUpdateParams
+            },
             # 更新胞域扩增任务状态
             self._updateExpansionStatus_s2c: {
                 'send': serverSendUpdateExpansionStatus,
                 'parse': clientParseUpdateExpansionStatus
+            },
+            # 更新区域剪切任务状态
+            self._updateRegionClipStatus_s2c: {
+                'send': serverSendUpdateRegionClipStatus,
+                'parse': clientParseUpdateRegionClipStatus
+            },
+            # 细胞选择任务状态
+            self._updateCellSelectorStatus_s2c: {
+                'send': serverSendUpdateCellSelectorStatus,
+                'parse': clientParseUpdateCellSelectorStatus
             }
         }
     

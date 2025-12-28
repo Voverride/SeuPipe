@@ -14,6 +14,8 @@ admin = getpass.getuser()
 
 q = Query()
 
+userCache = dict()
+
 def get_users()->list:
     """
     Retrieve a list of users from the database who are not the current admin.
@@ -21,24 +23,11 @@ def get_users()->list:
     Returns:
         list: A list of users that do not have the same username as the admin.
     """
-    return table.search(q.usrname != admin)
-
-def add_user(usrname:str, usrtype:int, disabled:bool=False, usrhost:str=False)->int:
-    """
-    Add a new user to the 'users' table in the database.
-
-    Args:
-        usrname (str): The username(passcode) of the new user.
-        usrtype (int): The user permission (e.g., 0->ReadOnly, 1->Editable).
-        disabled (bool, optional): Indicates whether the user is disabled. Defaults to False.
-        usrhost (str, optional): The host associated with the user. Defaults to False.
-
-    Returns:
-        int: The ID of the newly inserted user.
-    """
-    id = table.insert({'usrname': usrname, 'usrtype': usrtype, 'usrhost': usrhost, 'disabled': disabled})
-    return id
-
+    if 'get_users' in userCache:
+        return userCache['get_users']
+    result = table.search(q.usrname != admin)
+    userCache['get_users'] = result
+    return result
 def search_user(usrname:str=None, usrhost:str=None)->list:
     """
     Search for users based on the provided username and/or host.
@@ -50,12 +39,21 @@ def search_user(usrname:str=None, usrhost:str=None)->list:
     Returns:
         list: A list of users that match the search criteria.
     """
+    key = f'search_user_{usrname}_{usrhost}'
+    if key in userCache:
+        return userCache[key]
     if usrname and usrhost:
-        return table.search(q.usrname == usrname and q.usrhost == usrhost)
+        result = table.search(q.usrname == usrname and q.usrhost == usrhost)
+        userCache[key] = result
+        return result
     elif usrname:
-        return table.search(q.usrname == usrname)
+        result = table.search(q.usrname == usrname)
+        userCache[key] = result
+        return result
     elif usrhost:
-        return table.search(q.usrhost == usrhost)
+        result = table.search(q.usrhost == usrhost)
+        userCache[key] = result
+        return result
     return []
 
 def get_user_with_id(id:int)->dict:
@@ -68,7 +66,12 @@ def get_user_with_id(id:int)->dict:
     Returns:
         dict: The user record with the specified ID.
     """
-    return table.get(doc_id=id)
+    key = f'get_user_with_id_{id}'
+    if key in userCache:
+        return userCache[key]
+    result = table.get(doc_id=id)
+    userCache[key] = result
+    return result
 
 def remove_user_with_ids(ids:list)->None:
     """
@@ -84,6 +87,7 @@ def remove_user_with_ids(ids:list)->None:
     for user in users:
         usrname = user['usrname']
         alidata.delete_user_data(usrname)
+    userCache.clear()
 
 def update_user_with_ids(ids:list, new_name:str=None, new_type:str=None, new_host:str=None, disabled:bool=None)->None:
     """
@@ -106,3 +110,21 @@ def update_user_with_ids(ids:list, new_name:str=None, new_type:str=None, new_hos
     if disabled is not None:
         new_data['disabled'] = disabled
     table.update(new_data, doc_ids=ids)
+    userCache.clear()
+
+def add_user(usrname:str, usrtype:int, disabled:bool=False, usrhost:str=False)->int:
+    """
+    Add a new user to the 'users' table in the database.
+
+    Args:
+        usrname (str): The username(passcode) of the new user.
+        usrtype (int): The user permission (e.g., 0->ReadOnly, 1->Editable).
+        disabled (bool, optional): Indicates whether the user is disabled. Defaults to False.
+        usrhost (str, optional): The host associated with the user. Defaults to False.
+
+    Returns:
+        int: The ID of the newly inserted user.
+    """
+    id = table.insert({'usrname': usrname, 'usrtype': usrtype, 'usrhost': usrhost, 'disabled': disabled})
+    userCache.clear()
+    return id

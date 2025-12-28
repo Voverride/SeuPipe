@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from threading import Lock
 import math
+import scipy.sparse
 import os
 from scipy.sparse import lil_matrix
 
@@ -21,7 +22,9 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
     if int(patchsize) > 0:
         adatasub = adatasub[int(startx):int(startx)+int(patchsize),int(starty):int(starty)+int(patchsize)].copy()
     
-    adatasub.layers[layer_name] = adatasub.layers[layer_name].toarray()
+    layer_data = adatasub.layers[layer_name]
+    if scipy.sparse.issparse(layer_data):
+        adatasub.layers[layer_name] = layer_data.toarray()
 
     startx = str(startx)
     starty = str(starty)

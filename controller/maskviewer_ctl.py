@@ -54,11 +54,11 @@ def generate_layer_adata(z, df, mask):
         X = X,
         obs = pd.DataFrame(
             {
-                'x': -y_centered,
+                'x': y_centered,
                 'y': x_centered,
                 'z': z,
-                'image_x': x_abs,
-                'image_y': y_abs
+                'image_x': y_abs,
+                'image_y': x_abs
             },
             index = new_cell_ids
         ),
@@ -96,7 +96,10 @@ def export_maskviewer_file(path):
         index_unique=None,
         merge='first'
     )
-    merged_adata.write(path)
+    merged_adata.layers['counts'] = merged_adata.X.copy()
+    sc.pp.normalize_total(merged_adata, target_sum=1e4)
+    sc.pp.log1p(merged_adata)
+    merged_adata.write_h5ad(path)
     set_head_notice('Export successfully!', 'success')
     return True
 

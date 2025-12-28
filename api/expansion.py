@@ -26,6 +26,7 @@ def run_scs(taskName):
             project_path = expData.get_expTaskSlices_zfolder(taskName, z_index)
             adata = sc.read_h5ad(adata_path)
             segment_cells(adata, bin_file, project_path, taskInfo, slice, layer_name='watershed_mask', patch_size=patchSize, bin_size=binSize, n_neighbor=neighbors, epochs=epochs, r_estimate=diameter)
+            release_memory()
             rows, cols = adata.layers['stain'].shape
             result_folder = expData.get_expTask_result_folder(taskName, z_index)
             expansion_mask = process_cell_masks(result_folder, rows, cols)

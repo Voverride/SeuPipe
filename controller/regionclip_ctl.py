@@ -11,18 +11,45 @@ import re
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+from controller.notice import *
+from api.regionclip import *
 from utils.commonfuc import compress_image
+import threading
 
-def get_clipped_images(taskName, slicename, clipName, row_start, row_end, col_start, col_end):
+def export_clipped_data(taskName, clipName):
     """
-    获取指定任务和切片的裁剪图像
+    导出任务裁剪数据
     """
-    clipData.clip_image(taskName, slicename, clipName, row_start, row_end, col_start, col_end)
-    stain_path = clipData.get_task_clipName_stain_path(taskName, slicename, clipName)
-    gem_image_path = clipData.get_task_clipName_gemImage_path(taskName, slicename, clipName)
-    stain_src = get_image_base64(stain_path)
-    gem_src = get_image_base64(gem_image_path)
-    return stain_src, gem_src
+    slices = clipData.get_task_slices(taskName)
+    unCompleteSlices = []
+    exportData = ''
+    for slice in slices:
+        imgPath = clipData.get_task_clipName_stain_path(taskName, slice, clipName)
+        gemPath = clipData.get_task_clipName_gem_path(taskName, slice, clipName)
+        if imgPath is None or gemPath is None:
+            unCompleteSlices.append(slice)
+            continue
+        exportData += f"{slice},{imgPath},{gemPath}\n"
+    exportData.rstrip('\n')
+    if len(unCompleteSlices) > 0:
+        return None, unCompleteSlices
+    return exportData, None
+def raise_runtime_bug(taskName, slice, clipName):
+    """
+    抛出运行时的异常
+    """
+    status = clipData.read_taskclip_status(taskName, clipName, slice)
+    exception = status['exception']
+    set_aside_notice('Task Error', exception, 'error')
+
+
+def start_clip_image(taskName, slice, clipName, row_start, row_end, col_start, col_end):
+    """
+    开始裁剪图像
+    """
+    clipData.add_running_task(taskName, slice, clipName)
+    thread = threading.Thread(target=clip_image, args=(taskName, slice, clipName, row_start, row_end, col_start, col_end))
+    clipData.add_thread(taskName, thread)
 
 def get_image_base64(image_path):
     """

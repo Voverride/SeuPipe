@@ -1,7 +1,6 @@
 from controller.maskviewer_ctl import *
 from dash import callback, Input, Output, State, no_update, Patch
 from dash.exceptions import PreventUpdate
-import feffery_antd_components as fac
 from pages.components.fileSelecter import fileSelecter
 
 
