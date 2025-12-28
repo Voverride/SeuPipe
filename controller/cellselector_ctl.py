@@ -109,7 +109,7 @@ def get_slice_graph(project, slice):
         mode='markers',
         customdata=position.index,
         marker=dict(color='#f6b894', opacity=1, size=7),
-        hoverinfo='skip'
+        hovertemplate='%{customdata}<extra></extra>'
     )
     return fig
 
