@@ -1,6 +1,3 @@
-import dash
-from pages.main_p import main_layout
-import argparse
 import warnings
 from numba import errors
 import tensorflow as tf
@@ -10,6 +7,9 @@ if gpus:
     tf.config.experimental.set_memory_growth(gpus[0], True)
 np_config.enable_numpy_behavior()
 warnings.filterwarnings("ignore", category=errors.NumbaWarning)
+import dash
+from pages.main_p import main_layout
+import argparse
 from controller.segmentation_ctl import parse_tasklist
 from controller.regionclip_ctl import parse_regionclip_tasklist
 from utils.commonfuc import get_local_ip
