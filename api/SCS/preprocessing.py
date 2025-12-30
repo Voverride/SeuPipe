@@ -121,10 +121,10 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
         mask2center[nucleus] = [average_x, average_y]
         sizes.append(len(mask_dict[nucleus]))
 
-    with open(bin_file, 'r') as f:
-        next(f)
-        lines = [line.strip().split() for line in f]
-
+    gem = pd.read_csv(bin_file, sep='\t', comment='#')
+    countField = 'MIDCounts' if 'MIDCounts' in gem else 'MIDCount'
+    lines = gem[['geneID', 'x', 'y', countField]].values
+    del gem
     #find xmin ymin
     xmin = float('inf') # 找出gem文件中x坐标最小值
     ymin = float('inf') # 找出gem文件中y坐标最小值

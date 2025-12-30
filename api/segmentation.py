@@ -25,6 +25,7 @@ from utils.colors import *
 import traceback
 from dataManager.workspace import *
 from utils.commonfuc import *
+import imageio.v3 as iio
 from dataManager.segmentation_d import segData
 def run_segmentation_task(taskInfo):
     """
@@ -49,6 +50,10 @@ def run_segmentation_task(taskInfo):
                 reg = item['registration']
                 set_progress_status(reg, 'processing')
                 adata = refine_alignment(image_file, bin_file, cmap='cividis', dpi=300)
+                # 替换回原来的图像
+                stain_image = iio.imread(image_file)
+                adata.layers['stain'] = stain_image
+                # 替换结束
             except Exception as e:
                 set_progress_status(reg, 'error')
                 taskInfo['exception'] = traceback.format_exc()

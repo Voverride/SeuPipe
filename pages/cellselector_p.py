@@ -152,7 +152,7 @@ content_panel = html.Div(
                     )
                 ],
                 size='middle',
-                style={'marginTop':'24.5px'},
+                style={'marginTop':'41px'},
             ),
             fac.AntdCenter(
                 dcc.Graph(

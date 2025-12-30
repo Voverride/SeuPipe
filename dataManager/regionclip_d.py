@@ -164,6 +164,8 @@ class RegionClipData:
             if gem_path is None:
                 return None
             gem = pd.read_csv(gem_path, sep='\t', comment='#')
+            countField = 'MIDCounts' if 'MIDCounts' in gem else 'MIDCount'
+            gem = gem[['geneID', 'x', 'y', countField]].rename(columns={countField: 'MIDCount'})
         if cache:
             self._gemCache[gem_key] = gem
         return gem

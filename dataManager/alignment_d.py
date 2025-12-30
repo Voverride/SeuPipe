@@ -593,7 +593,7 @@ class AlignmentData:
         df['layers'] = df[z].astype(str)
         df['index'] = df.index
         df = df.sort_values(by=z)
-        cmap = get_color_map(set(df['layers']))
+        cmap = get_color_map(set(df['layers']), type='COLORS_60')
         fig = px.scatter_3d(
             df, x=x, y=y, z=z, 
             color='layers', 
