@@ -2,6 +2,52 @@ from controller.auth import *
 from setting import setting
 import json
 
+async def serverSendUpdateClusteringStatus(key, websocket, ws, ms, **kwargs):
+    """
+    服务端发送更新聚类任务状态信息
+    """
+    project = kwargs.get('project', None)
+    data = dict(
+        key=key,
+        update=True,
+    )
+    for connected in ws.clients:
+        if connected.curMenuItem==setting.cellSelector:
+            ws_project = connected.params.get('project', None)
+            if project==ws_project:
+                await connected.send(json.dumps(data))
+
+def clientParseUpdateClusteringStatus(message, websocket, ws, ms, **kwargs):
+    """
+    客户端解析更新聚类任务状态信息
+    """
+    update = message.get('update', False)
+    if update:
+        set_props('refresh-sel-status', dict(children=None))
+
+async def serverSendUpdateSegmentationStatus(key, websocket, ws, ms, **kwargs):
+    """
+    服务端发送更新分割任务状态信息
+    """
+    project = kwargs.get('project', None)
+    data = dict(
+        key=key,
+        update=True,
+    )
+    for connected in ws.clients:
+        if connected.curMenuItem==setting.segmentation:
+            ws_project = connected.params.get('project', None)
+            if project==ws_project:
+                await connected.send(json.dumps(data))
+
+def clientParseUpdateSegmentationStatus(message, websocket, ws, ms, **kwargs):
+    """
+    客户端解析更新分割任务状态信息
+    """
+    update = message.get('update', False)
+    if update:
+        set_props('seg-refresh-status', dict(children=None))
+
 async def serverSendUpdateCellSelectorStatus(key, websocket, ws, ms, **kwargs):
     """
     服务端发送更新细胞选择任务状态信息

@@ -1,5 +1,6 @@
 from api.SCS.scs import *
 from dataManager.segmentation_d import segData
+from dataManager.maskviewer_d import maskData
 import scanpy as sc
 import re
 from utils.commonfuc import *
@@ -20,9 +21,11 @@ def run_scs(taskName):
     total_slices = len(slices)
     try:
         for i, slice in enumerate(slices, start=1):
+            if slice['patchprocess']['status'] == Status.SUCCESS:
+                continue
             bin_file = slice['gem']
             z_index = slice['z']
-            adata_path = segData.get_seg_adata_path(taskName, z_index)
+            adata_path = segData.get_result_path(taskName, z_index)
             project_path = expData.get_expTaskSlices_zfolder(taskName, z_index)
             adata = sc.read_h5ad(adata_path)
             segment_cells(adata, bin_file, project_path, taskInfo, slice, layer_name='watershed_mask', patch_size=patchSize, bin_size=binSize, n_neighbor=neighbors, epochs=epochs, r_estimate=diameter)
@@ -31,11 +34,12 @@ def run_scs(taskName):
             result_folder = expData.get_expTask_result_folder(taskName, z_index)
             expansion_mask = process_cell_masks(result_folder, rows, cols)
             adata.layers['expansion_mask'] = expansion_mask
-            mask_fig, contour_fig = generate_cell_masks_rgba(expansion_mask, hex_colors=None)
-            expansion_mask_path = segData.get_seg_expansion_mask_figure_path(taskName, z_index)
-            expansion_contour_path = segData.get_seg_expansion_contour_figure_path(taskName, z_index)
-            write_pkl(mask_fig, expansion_mask_path)
-            write_pkl(contour_fig, expansion_contour_path)
+            mask_fig, contour_fig = generate_cell_masks_rgba(expansion_mask)
+
+            expansion_fig = get_mask_contour_figure(adata.layers['stain'], mask_fig, contour_fig)
+            expansion_path = maskData.get_expansion_path(taskName, z_index)
+            write_pkl(expansion_fig, expansion_path)
+
             adata.write_h5ad(adata_path)
             set_slice_status(taskInfo, slice, 'patchprocess', Status.SUCCESS, slice['patchprocess']['text'])
             percent = i / total_slices

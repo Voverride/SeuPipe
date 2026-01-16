@@ -1,160 +1,157 @@
-from dataManager.segmentation_d import segData
-from dash import set_props
-from controller.auth import *
-from api.segmentation import *
-from controller.notice import *
-import threading
 import re
+import os
+import threading
+from controller.notice import set_head_notice, set_aside_notice
+from dash import set_props
+from api.segmentation import *
+from controller.auth import get_request_usrname
+from dataManager.segmentation_d import segData
+from utils.commonfuc import get_current_date
 
-
-def raise_runtime_bug(taskName):
+def raise_runtime_bug(project):
     """
     抛出运行时的异常
     """
-    taskinfo = segData.read_taskinfo(taskName)
-    exception = taskinfo['exception']
-    set_aside_notice('Task Error', exception, 'error')
+    project_info = segData.get_project_info(project)
+    exception = project_info['exception']
+    set_aside_notice('Runtime Error', exception, 'error')
 
-def start_segmentation_task(taskName):
+def start_segmentation_project(projectname):
     """
-    启动分割任务
+    启动分割项目
     """
-    task_info = segData.read_taskinfo(taskName)
-    if task_info is None or len(task_info['data'])==0:
-        set_head_notice('There was no task to execute !', type='warning')
+    if projectname in segData._running_projects:
+        set_head_notice(f'{projectname} is running, please wait for complete !', type='warning')
+        return
+    project_info = segData.get_project_info(projectname)
+    if project_info is None or len(project_info['slices'])==0:
+        set_head_notice(f'There was no slice to execute in {projectname} !', type='warning')
     else:
-        segData.reset_taskinfo(task_info)
-        segData.save_taskinfo(task_info)
-        segData.create_running_task(task_info)
+        observed_info = segData.add_running_project(projectname, project_info)
         thread = threading.Thread(
-            target=run_segmentation_task,
-            args=(task_info,)
+            target=run_segmentation_project,
+            args=(observed_info,)
         )
-        task_info['thread'] = thread
         thread.start()
-        set_head_notice(taskName+' has been started !', type='success')
-        set_props('seg-table-metadata', dict(data=[task_info['metadata']]))
-        set_props('seg-table-tasklist', dict(data=task_info['data']))
+        set_head_notice(f'{projectname} has been started !', type='success')
 
+def restore_init_data(projectName):
+    """
+    恢复初始数据
+    """
+    set_props('seg-select-project', dict(value=projectName))    
 
-def delete_task_from_disk(taskName):
+def update_table_with_project(projectName):
     """
-    从磁盘删除任务
+    更新项目数据表格
     """
-    segData.delete_task(taskName)
-    set_head_notice(taskName+' has been removed from your disk !', type='success')
-    set_props('seg-table-metadata', dict(data=[]))
-    set_props('seg-table-tasklist', dict(data=[]))
-    set_props('seg-select-taskname', dict(value=None))
-def restore_initial_data(lastTaskName):
-    """
-    恢复网页初始数据
-    """
-    if lastTaskName:
-        set_props('seg-select-taskname', dict(value=lastTaskName))
-
-def update_table_with_tasklist(taskName):
-    """
-    根据下拉列表选项更新任务列表
-    """
-    set_props('seg-store-taskname', dict(data=taskName))
-    if segData.has_userVirtualTask(taskName):
-        task_info = segData.get_userVirtualTask(taskName)
-    else:
-        task_info = segData.read_taskinfo(taskName)
-    if task_info is None:
-        # set_props('seg-select-taskname', dict(value=None))
-        set_head_notice(taskName+' related data may have been removed from your disk !', type='warning')
+    project_info = segData.get_project_info(projectName)
+    if project_info is None:
+        set_props('seg-select-project', dict(value=None))
+        set_head_notice(f'{projectName} related data may been removed from your disk !', type='warning')
         set_props('seg-table-metadata', dict(data=[]))
-        set_props('seg-table-tasklist', dict(data=[]))
+        set_props('seg-table-slices', dict(data=[]))
         set_props('seg-bug-panel', dict(style={'display':'none'}))
     else:
-        metadata = task_info['metadata']
-        metadata['GPU'] = str(metadata['GPU'])
-        if metadata['diameter']==0:
-            metadata['diameter'] = 'auto'
-        exception = task_info['exception']
+        slices = project_info['slices']
+        project_info.pop('slices')
+        
+        project_info['gpu'] = str(project_info['gpu'])
+        if project_info['diameter']==0:
+            project_info['diameter'] = 'auto'
+        exception = project_info['exception']
         if exception is None:
             set_props('seg-bug-panel', dict(style={'display':'none'}))
         else:
             set_props('seg-bug-panel', dict(style={'display':'flex'}))
-            
-        set_props('seg-table-metadata', dict(data=[metadata]))
-        set_props('seg-table-tasklist', dict(data=task_info['data']))
+        set_props('seg-table-metadata', dict(data=[project_info]))
+        set_props('seg-table-slices', dict(data=slices))
+        is_running = segData.has_running_project(projectName)
+        if is_running:
+            set_props('seg-start-project', dict(disabled=True))
+            set_props('seg-delete-project', dict(disabled=True))
+        else:
+            set_props('seg-start-project', dict(disabled=False))
+            set_props('seg-delete-project', dict(disabled=False))
 
-def process_submited_tasklist(taskName, fileStatus, modelType, diameter, batchsize, useGPU, username):
+def delete_project_from_disk(projectName):
     """
-    处理提交的任务列表，并将任务持久化到本地
+    删除项目
     """
-    if taskName is None or taskName.strip()=='':
-        set_head_notice('Task Name cannot be empty', type='error')
+    segData.delete_project(projectName)
+    set_head_notice(f'{projectName} has been removed from your disk !', type='success')
+    set_props('seg-table-metadata', dict(data=[]))
+    set_props('seg-table-slices', dict(data=[]))
+    set_props('seg-select-project', dict(value=None))
+
+def process_submited_project(projectName, fileStatus, modelType, diameter, batchsize, useGPU):
+    """
+    处理提交的项目，并将项目持久化到本地
+    """
+    if projectName is None or projectName.strip()=='':
+        set_head_notice('Project Name cannot be empty', type='error')
         return False
-    taskList = segData.get_exist_tasks()
-    if taskName in taskList:
-        set_head_notice('Task Name already exists', type='warning')
+    projectList = segData.get_exist_projects()
+    if projectName in projectList:
+        set_head_notice(f'Project Name {projectName} already exists', type='warning')
         return False
     if fileStatus!='success':
-        set_head_notice('Please upload your file first', type='warning')
+        set_head_notice(f'Please upload your file first for project {projectName}', type='warning')
         return False
-    
-    segData.set_temptask_metadata(taskName,{
+    username = get_request_usrname()
+    current_date = get_current_date()
+
+    segData.save_project_metadata({
+        'name': projectName,
         'creator': username,
+        'date': current_date,
         'model': modelType,
         'diameter': diameter,
         'batchsize': batchsize,
-        'GPU': useGPU,
-        'progress': 0
+        'gpu': useGPU,
+        'progress': 0,
+        'exception': None
     })
 
-    segData.save_temptask()
-    set_head_notice('Task '+taskName+' created successfully!', type='success')
-    set_props('seg-modal-newtask', dict(visible=False))
-    set_props('seg-select-taskname', dict(options=list(taskList), value=taskName))
+    set_head_notice(f'Project {projectName} created successfully!', type='success')
+    set_props('seg-modal-newproject', dict(visible=False))
+    set_props('seg-select-project', dict(value=projectName))
 
-def parse_tasklist(lines:list):
+def read_project_metadata_file(fpath:str):
     """
-    解析任务列表
-    """
-    # data=[
-    #     {
-    #         'z': 1,
-    #         'image': 'image2',
-    #         'gem': 'gem1',
-    #         'registration': {'status': 'success', 'text': 'success'},
-    #         'segmentation': {'status': 'success', 'text': 'success'},
-    #     }
-    # ],
-    try:
-        data = []
-        for line in lines:
-            z, image, gem, *extra = re.split(r'[,]+', line.strip())
-            data.append({
-                'z': int(z),
-                'image': image.strip(),
-                'gem': gem.strip(),
-                'registration': {'status': 'warning', 'text': 'waiting'},
-                'segmentation': {'status': 'warning', 'text': 'waiting'},
-            })
-        segData.set_temptask_data(data)
-    except Exception as e:
-        segData.reset_temptask_data()
-        raise e
-def read_tasklist_file(fpath:str):
-    """
-    读取任务列表文件
+    读取项目元数据文件
     """
     success = True
     try:
         with open(fpath, 'r') as f:
-            parse_tasklist(f.readlines())
+            parse_project_metadata(f.readlines())
     except Exception as e:
         success = False
 
     filename = os.path.basename(fpath)
     if success:
-        set_props('seg-tasklist-filename', dict(type='success', children=filename))
+        set_props('seg-project-filename', dict(type='success', children=filename))
         set_head_notice(filename+' import successfully!', type='success')
     else:
-        set_props('seg-tasklist-filename', dict(type='secondary', children='No file'))
+        set_props('seg-project-filename', dict(type='secondary', children='No file'))
         set_head_notice(filename+' import failed, please check your file format', type='error')
     return success
+def parse_project_metadata(lines:list):
+    """
+    解析项目元数据列表
+    """
+    try:
+        slices = []
+        for line in lines:
+            z, img, gem, *extra = re.split(r'[,]+', line.strip())
+            slices.append({
+                'z': int(z),
+                'img': img.strip(),
+                'gem': gem.strip(),
+                'segmentation': {'status': 'warning', 'text': 'waiting'},
+                'postprocess': {'status': 'warning', 'text': 'waiting'},
+            })
+        segData.set_project_metadata(slices)
+    except Exception as e:
+        segData.reset_project_metadata()
+        raise e

@@ -1,5 +1,4 @@
 import math
-import numpy as np
 from api.SCS import preprocessing, transformer, postprocessing
 import os
 from utils.typing import Status

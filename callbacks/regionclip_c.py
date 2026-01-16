@@ -5,22 +5,22 @@ from websocket.message import ms
 
 @callback(
     Input('clip-button-exportData', 'nClicks'),
-    State('clip-select-taskname-export', 'value'),
+    State('clip-select-project-export', 'value'),
     State('clip-select-clipname-export', 'value'),
     prevent_initial_call=True
 )
-def export_regionclip_data(nc, taskName, clipName):
+def export_regionclip_data(nc, project, clipName):
     """
-    导出任务裁剪数据
+    导出项目裁剪数据
     """
     if nc:
-        if taskName is None:
-            set_head_notice('Please select export task first!', type='warning')
+        if project is None:
+            set_head_notice('Please select export project first!', type='warning')
             return
         if clipName is None:
             set_head_notice('Please select export clip name first!', type='warning')
             return
-        exportData, unCompleteSlices = export_clipped_data(taskName, clipName)
+        exportData, unCompleteSlices = export_clipped_data(project, clipName)
         if exportData is None:
             content = f'The following slices are not completed: '
             for slice in unCompleteSlices:
@@ -32,12 +32,12 @@ def export_regionclip_data(nc, taskName, clipName):
             )
             return
         set_props('clip-download-exportData', dict(data={
-            'filename': f'{taskName}_{clipName}.csv',
+            'filename': f'{project}_{clipName}.csv',
             'content': exportData
         }))
 
 @callback(
-    Input('clip-select-taskname', 'value'),
+    Input('clip-select-project', 'value'),
     Input('clip-select-slice', 'value'),
     Input('clip-select-clipname', 'value'),
     prevent_initial_call=True
@@ -64,7 +64,7 @@ def update_regionclip_status(nc, clipName):
     return clipName
 @callback(
     Input('clip-button-showBug', 'nClicks'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     State('clip-select-slice', 'value'),
     State('clip-select-clipname', 'value'),
     prevent_initial_call=True
@@ -77,7 +77,7 @@ def show_bug(nc, taskName, slice, clipName):
     Output('clip-gem-image', 'src', allow_duplicate=True),
     Input('clip-select-slice', 'value'),
     Input('clip-select-clipname', 'value'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     running=[
         (Output('clip-select-slice', 'disabled'), True, False),
         (Output('clip-select-clipname', 'disabled'), True, False),
@@ -128,7 +128,7 @@ def update_clipped_images(slicename, clipName, taskName):
 @callback(
     Input('clip-button-startClip', 'nClicks'),
     State('clip-graph-original', 'relayoutData'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     State('clip-select-slice', 'value'),
     State('clip-select-clipname', 'value')
 )
@@ -161,10 +161,10 @@ def start_clip(nc, relayoutData, taskName, slicename, clipName):
 
 @callback(
     Input('clip-delete-task-confirm', 'confirmCounts'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     running=[
         (Output('clip-delete-task', 'loading'), True, False),
-        (Output('clip-select-taskname', 'disabled'), True, False)
+        (Output('clip-select-project', 'disabled'), True, False)
     ],
     prevent_initial_call=True
 )
@@ -179,12 +179,12 @@ def delete_task(nc, taskName):
         set_props('clip-graph-original', dict(style={'visibility':'hidden', 'height':'calc(90vh - 50px)', 'width':'100%'}))
         set_props('clip-select-slice', dict(value=None))
         set_props('clip-select-clipname', dict(value=None))
-        set_props('clip-select-taskname', dict(value=None))
+        set_props('clip-select-project', dict(value=None))
 @callback(
     Output('clip-graph-original', 'figure'),
     Output('clip-graph-original', 'style'),
     Input('clip-select-slice', 'value'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     running=[
         (Output('clip-text-slice', 'children'), 'Loading...', 'Select Slice')
     ]
@@ -203,7 +203,7 @@ def update_orifig_clipnames(slicename, taskname):
     Output('clip-select-slice', 'options'),
     Output('clip-select-clipname', 'value', allow_duplicate=True),
     Output('clip-select-clipname', 'options', allow_duplicate=True),
-    Input('clip-select-taskname', 'value'),
+    Input('clip-select-project', 'value'),
     prevent_initial_call=True
 )
 def update_slicelist_options(taskname):
@@ -218,7 +218,7 @@ def update_slicelist_options(taskname):
 
 @callback(
     Output('clip-select-clipname-export', 'value'),
-    Input('clip-select-taskname-export', 'value'),
+    Input('clip-select-project-export', 'value'),
     prevent_initial_call=True
 )
 def reset_taskclip_export_value(taskName):
@@ -232,7 +232,7 @@ def reset_taskclip_export_value(taskName):
 @callback(
     Output('clip-select-clipname-export', 'options', allow_duplicate=True),
     Input('clip-select-clipname-tooltip-export', 'open'),
-    State('clip-select-taskname-export', 'value'),
+    State('clip-select-project-export', 'value'),
     prevent_initial_call=True
 )
 def update_taskclip_export_options(open, taskName):
@@ -250,7 +250,7 @@ def update_taskclip_export_options(open, taskName):
 @callback(
     Output('clip-select-clipname', 'options', allow_duplicate=True),
     Input('clip-select-clipname-tooltip', 'open'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     prevent_initial_call=True
 )
 def update_tasklist_options(open, taskName):
@@ -266,8 +266,8 @@ def update_tasklist_options(open, taskName):
     return no_update
 
 @callback(
-    Output('clip-select-taskname-export', 'options'),
-    Input('clip-select-taskname-tooltip-export', 'open'),
+    Output('clip-select-project-export', 'options'),
+    Input('clip-select-project-tooltip-export', 'open'),
     prevent_initial_call=True
 )
 def update_tasklist_export_options(open):
@@ -281,8 +281,8 @@ def update_tasklist_export_options(open):
     return no_update
 
 @callback(
-    Output('clip-select-taskname', 'options'),
-    Input('clip-select-taskname-tooltip', 'open'),
+    Output('clip-select-project', 'options'),
+    Input('clip-select-project-tooltip', 'open'),
     prevent_initial_call=True
 )
 def update_tasklist_options(open):
@@ -296,9 +296,9 @@ def update_tasklist_options(open):
     return no_update
 
 @callback(
-    Input('clip-button-submitTaskList', 'nClicks'),
-    State('clip-input-taskname', 'value'),
-    State('clip-tasklist-filename', 'type'),
+    Input('clip-button-submitProject', 'nClicks'),
+    State('clip-input-projectname', 'value'),
+    State('clip-project-filename', 'type'),
     State('main-title-username', 'children'),
     prevent_initial_call=True
 )
@@ -310,8 +310,8 @@ def submit_tasklist(nc, taskName, fileStatus, username):
         process_submited_tasklist(taskName, fileStatus, username)
 
 @callback(
-    Output('clip-tasklist-filename', 'children', allow_duplicate='True'),
-    Output('clip-tasklist-filename', 'type', allow_duplicate='True'),
+    Output('clip-project-filename', 'children', allow_duplicate='True'),
+    Output('clip-project-filename', 'type', allow_duplicate='True'),
     Input('clip-dragger-upload', 'lastUploadTaskRecord'),
     prevent_initial_call=True
 )
@@ -326,7 +326,7 @@ def upload_status(lastRecord):
         return 'No file', 'secondary'
 
 @callback(
-    Input('clip-button-importTaskList', 'nClicks'),
+    Input('clip-button-uploadFromServer', 'nClicks'),
     prevent_initial_call=True  
 )
 def open_import_box(nc):
@@ -340,7 +340,7 @@ def open_import_box(nc):
     Output('clip-select-clipname', 'value', allow_duplicate=True),
     Output('clip-select-clipname', 'options', allow_duplicate=True),
     Input('clip-delete-clipName-confirm', 'confirmCounts'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     State('clip-select-clipname', 'value'),
     running=[
         (Output('clip-delete-clipName', 'loading'), True, False)
@@ -373,7 +373,7 @@ def delete_clip(nc, taskName, clipName):
     Output('clip-modal-inputClipName', 'visible', allow_duplicate=True),
     Input('clip-button-submitClipName', 'nClicks'),
     State('clip-input-clipName', 'value'),
-    State('clip-select-taskname', 'value'),
+    State('clip-select-project', 'value'),
     prevent_initial_call=True
 )
 def submit_clip_name(nc, clipName, taskName):
@@ -410,10 +410,10 @@ def show_setPatchName_modal(nClicks):
     return no_update
 
 @callback(
-    Output('clip-modal-newtask', 'visible'),
-    Output('clip-tasklist-filename', 'children'),
-    Output('clip-tasklist-filename', 'type'),
-    Input('clip-button-newtask', 'nClicks'),
+    Output('clip-modal-newProject', 'visible'),
+    Output('clip-project-filename', 'children'),
+    Output('clip-project-filename', 'type'),
+    Input('clip-button-newProject', 'nClicks'),
     prevent_initial_call=True
 )
 def show_newtask_modal(nClicks):

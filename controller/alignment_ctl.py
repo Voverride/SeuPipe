@@ -172,7 +172,7 @@ def transform_points(points:np.ndarray, coordTransMtx:list)->np.ndarray:
         transformed_points = rotated_points + center + np.array([dx, dy])
         return transformed_points
 
-def get_field_legends(field:str, sliceList:list, startIndex:float, colorType='tab20', fetchSize=30)-> Tuple[List, bool]:
+def get_field_legends(field:str, sliceList:list, startIndex:float, colorType='COLORS_60', fetchSize=30)-> Tuple[List, bool]:
     """
     Retrieve legends for a specific field (e.g., labels and colors).
 
@@ -180,7 +180,7 @@ def get_field_legends(field:str, sliceList:list, startIndex:float, colorType='ta
         field (str): Field name used to generate legends.
         sliceList (list): List of slices.
         startIndex (float): Starting index for retrieving legends.
-        colorType (str): Color scheme type, default is 'tab20'.
+        colorType (str): Color scheme type, default is 'COLORS_60'.
         fetchSize (int): Number of legend items to fetch per request, default is 30.
 
     Returns:

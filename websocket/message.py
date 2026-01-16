@@ -13,6 +13,9 @@ class Message:
         self._updateExpansionStatus_s2c = 'update_expansion_status_s2c'
         self._updateRegionClipStatus_s2c = 'update_regionclip_status_s2c'
         self._updateCellSelectorStatus_s2c = 'update_cellselector_status_s2c'
+        self._updateSegmentationStatus_s2c = 'update_segmentation_status_s2c'
+        self._updateClusteringStatus_s2c = 'update_clustering_status_s2c'
+
         self._handlers = {
             # 建立ws连接时检查登录状态
             self._loginState_s2c: {
@@ -63,7 +66,17 @@ class Message:
             self._updateCellSelectorStatus_s2c: {
                 'send': serverSendUpdateCellSelectorStatus,
                 'parse': clientParseUpdateCellSelectorStatus
-            }
+            },
+            # 更新分割任务状态
+            self._updateSegmentationStatus_s2c: {
+                'send': serverSendUpdateSegmentationStatus,
+                'parse': clientParseUpdateSegmentationStatus
+            },
+            # 更新聚类任务状态
+            self._updateClusteringStatus_s2c: {
+                'send': serverSendUpdateClusteringStatus,
+                'parse': clientParseUpdateClusteringStatus
+            },
         }
     
     async def serverSend(self, key, websocket=None, ws=None, **kwargs):

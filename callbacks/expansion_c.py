@@ -1,7 +1,5 @@
 from controller.expansion_ctl import *
-from dash import callback, Input, Output, State, no_update, Patch
-from dash.exceptions import PreventUpdate
-from pages.components.fileSelecter import fileSelecter
+from dash import callback, Input, Output, State, no_update
 from controller.auth import *
 
 

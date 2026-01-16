@@ -149,7 +149,7 @@ def delete_task_from_disk(taskName):
     """
     clipData.delete_task(taskName)
     set_head_notice(taskName+' has been removed from your disk !', type='success')
-    set_props('clip-select-taskname', dict(value=None))
+    set_props('clip-select-project', dict(value=None))
     set_props('clip-select-slice', dict(value=None, options=[]))
     set_props('clip-graph-original', dict(figure={}, style={'visibility': 'hidden'}))
 def process_submited_tasklist(taskName, fileStatus, username):
@@ -174,8 +174,8 @@ def process_submited_tasklist(taskName, fileStatus, username):
 
     clipData.save_temptask()
     set_head_notice('Task '+taskName+' created successfully!', type='success')
-    set_props('clip-modal-newtask', dict(visible=False))
-    set_props('clip-select-taskname', dict(options=list(taskList), value=taskName))
+    set_props('clip-modal-newProject', dict(visible=False))
+    set_props('clip-select-project', dict(options=list(taskList), value=taskName))
 
 def parse_regionclip_tasklist(lines:list):
     """
@@ -217,9 +217,9 @@ def read_regionclip_file(fpath:str):
 
     filename = os.path.basename(fpath)
     if success:
-        set_props('clip-tasklist-filename', dict(type='success', children=filename))
+        set_props('clip-project-filename', dict(type='success', children=filename))
         set_head_notice(filename+' import successfully!', type='success')
     else:
-        set_props('clip-tasklist-filename', dict(type='secondary', children='No file'))
+        set_props('clip-project-filename', dict(type='secondary', children='No file'))
         set_head_notice(filename+' import failed, please check your file format', type='error')
     return success

@@ -2,11 +2,11 @@ from dataManager.workspace import *
 from controller.auth import get_host
 from dataManager.users import search_user
 from utils.commonfuc import *
-from dash import Patch
 from dataManager.segmentation_d import segData
+from dataManager.maskviewer_d import maskData
+from utils.typing import Status
 import shutil
 from utils.observer import observer
-import pickle
 
 class ExpansionData:
     def __init__(self):
@@ -26,16 +26,28 @@ class ExpansionData:
         taskInfo = self.read_taskinfo(taskName)
         taskInfo['running'] = True
         taskInfo['exception'] = None
-        taskInfo['progress'] = 0
-        for slice in taskInfo['slices']:
-            slice['preprocess']['status'] = 'warning'
-            slice['preprocess']['text'] = 'waiting'
-            slice['train']['status'] = 'warning'
-            slice['train']['text'] = 'waiting'
-            slice['postprocess']['status'] = 'warning'
-            slice['postprocess']['text'] = 'waiting'
-            slice['patchprocess']['status'] = 'warning'
-            slice['patchprocess']['text'] = '0/0'
+        slices = taskInfo['slices']
+        patchprocess_text = '0/0'
+        cnt = 0
+        for slice in slices:
+            expansion_path = maskData.get_expansion_path(taskName, slice['z'])
+            status = Status.WARNING
+            text = 'waiting'
+            patchprocess_text = '1/1'
+            if os.path.exists(expansion_path):
+                status = Status.SUCCESS
+                text = 'success'
+                cnt+=1
+            slice['preprocess']['status'] = status
+            slice['preprocess']['text'] = text
+            slice['train']['status'] = status
+            slice['train']['text'] = text
+            slice['postprocess']['status'] = status
+            slice['postprocess']['text'] = text
+            slice['patchprocess']['status'] = status
+            slice['patchprocess']['text'] = patchprocess_text
+        
+        taskInfo['progress'] = cnt/len(slices)
 
         boserved_task = observer.observe(taskInfo, callback)
         self._runningTask[taskName] = boserved_task
@@ -78,6 +90,11 @@ class ExpansionData:
         task_folder = os.path.join(get_expansion_workspace(), taskName)
         if os.path.exists(task_folder):
             shutil.rmtree(task_folder)
+        slices = maskData.get_project_slices(taskName)
+        for slice in slices:
+            expansion_result_path = maskData.get_expansion_path(taskName, slice)
+            if os.path.exists(expansion_result_path):
+                os.remove(expansion_result_path)
 
     def read_taskinfo(self, taskName:str):
         """
@@ -145,20 +162,20 @@ class ExpansionData:
         check_path(task_folder)
         slices_folder = os.path.join(task_folder, 'slices')
         check_path(slices_folder)
-        segTask = segData.read_taskinfo(taskName)
+        segTask = segData.get_project_info(taskName)
         slices = [
             {
                 'z': task['z'],
-                'image': task['image'],
+                'img': task['img'],
                 'gem': task['gem'],
-                'registration': task['registration'],
                 'segmentation': task['segmentation'],
+                'seg_postprocess': task['postprocess'],
                 'preprocess': {'status': 'warning', 'text': 'waiting'},
                 'train': {'status': 'warning', 'text': 'waiting'},
                 'postprocess': {'status': 'warning', 'text': 'waiting'},
                 'patchprocess': {'status': 'warning', 'text': '0/0'},
             }
-            for task in segTask['data']
+            for task in segTask['slices']
         ]
         metadata = {
             'running': False,

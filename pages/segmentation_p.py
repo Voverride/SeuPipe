@@ -3,39 +3,40 @@ import feffery_antd_components as fac
 from callbacks.segmentation_c import *
 
 
-new_task_modal = fac.AntdModal(
+new_project_modal = fac.AntdModal(
     fac.AntdSpace(
         [
             fac.AntdDivider('Data Preparation'),
             fac.AntdSpace(
                 [
                     fac.AntdInput(
-                        id='seg-input-taskname',
-                        placeholder='Input Task Name...', 
-                        style={'width':'492px', 'display':'block'},
+                        id='seg-input-projectName',
+                        persistence=False,
+                        autoComplete='off',
+                        status='error',
+                        placeholder='Input Project Name...', 
+                        style={'width':'465px', 'display':'block'},
                     ),
                     fac.AntdButton(
-                        'Import Task List', 
-                        type='primary',
-                        id='seg-button-importTaskList',
-                        icon=fac.AntdIcon(icon='antd-cloud-download'),
-                        style={'backgroundColor':'#5383c3'}
+                        'Upload From Server',
+                        id='seg-button-project',
+                        icon=fac.AntdIcon(icon='md-file-upload')
                     ),
                 ],
                 style={'width':'100%'},
             ),
             fac.AntdDraggerUpload(
-                id='seg-dragger-upload',
+                id='seg-dragger-upload-project',
                 apiUrl='/upload/',
                 fileMaxSize=100,
                 fileListMaxLength=1,
-                text='Upload Task List',
+                text='Upload From Local',
                 locale='en-us',
                 showUploadList=False,
                 hint='Click or drag file here to upload',
                 showErrorMessage=False,
             ),
-            fac.AntdText('No file', id='seg-tasklist-filename', type='secondary'),
+            fac.AntdText('No file', id='seg-project-filename', type='secondary'),
             fac.AntdDivider('Model Configuration'),
             fac.AntdSpace(
                 [
@@ -98,7 +99,8 @@ new_task_modal = fac.AntdModal(
                     fac.AntdButton(
                         'Submit',
                         type='primary',
-                        id='seg-button-submitTaskList',
+                        disabled=True,
+                        id='seg-button-submitProject',
                         icon=fac.AntdIcon(icon='md-launch'),
                         style={'backgroundColor':'#d0826c', 'width':150, 'marginLeft':'-6px'}
                     ),
@@ -111,8 +113,8 @@ new_task_modal = fac.AntdModal(
         direction='vertical',
         style={'width':'100%'},
     ),
-    id='seg-modal-newtask', 
-    title='Create New Task',
+    id='seg-modal-newproject', 
+    title='Create New Project',
     mask=False,
     width=700,
     maskClosable=False,
@@ -123,45 +125,31 @@ control_panel = html.Div(
     fac.AntdCard(
         fac.AntdSpace(
             [
-                dcc.Interval(id="init-restore-segmentation", interval=1, max_intervals=1),
-                dcc.Interval(interval=1000, disabled=True, id='segmentation-interval'),
-                dcc.Interval(id="segmentation-event-loop", interval=1000),
-                new_task_modal,
+                new_project_modal,
+                dcc.Interval(id="seg-init-restore", interval=1, max_intervals=1),
                 fac.AntdButton(
-                    'Create New Task', 
+                    'Create New Project', 
                     type='primary',
-                    id='segmentation-button-newtask',
+                    id='seg-button-newproject',
                     icon=fac.AntdIcon(icon='antd-plus'),
                     style={'backgroundColor':'#698aab', 'width': '100%'}
                 ),
                 fac.AntdDivider(),
                 fac.AntdTooltip(
                     fac.AntdSelect(
-                        id='seg-select-taskname',
-                        # options=['task1', 'task2', 'task3'],
-                        # value='task1',
-                        placeholder='Select Task',
+                        id='seg-select-project',
+                        placeholder='Select Project',
                         debounceWait=300,
-                        # persistence=True,
                         locale='en-us',
                         allowClear=False,
                         style={'width':'100%'}
                     ),
-                    id='seg-select-taskname-tooltip',
+                    id='seg-select-project-tooltip',
                     open=False,
-                    title=fac.AntdText('Select Task'), 
+                    title=fac.AntdText('Select Project'), 
                     color='white'
                 ),
-                dcc.Store(id='seg-store-taskname', storage_type='local'),
-                # html.Div(
-                #     [
-                #         fac.AntdText('Creator:', strong=True, style={'marginRight':'6px'}),
-                #         fac.AntdText('zhouyb', type='success', id='seg-creator'),  
-                #     ],
-                #     style={'width':'100%', 'marginTop':'5px'}
-                # ),
-                # fac.AntdProgress(percent=100, id='annot-percent', style={'display':'block', 'width': '100%'}),
-
+                dcc.Store(id='seg-store-project', storage_type='local'),
             ],
             size='middle',
             direction='vertical',
@@ -170,7 +158,7 @@ control_panel = html.Div(
         styles={'header': {'display': 'none'}},
         style={'height':'93vh', 'maxHeight': '93vh','overflowY': 'auto'},
     ), 
-    id='segmentation-control_panel',
+    id='seg-control_panel',
 )
 
 content_panel = html.Div(
@@ -179,21 +167,21 @@ content_panel = html.Div(
             fac.AntdSpace(
                 [
                     fac.AntdButton(
-                        'Start Task', 
+                        'Start Project', 
                         type='primary',
-                        id='seg-start-task',
+                        id='seg-start-project',
                         icon=fac.AntdIcon(icon='antd-carry-out'),
                         style={'backgroundColor':'#7d8a70'}
                     ),
                     fac.AntdPopconfirm(
                         fac.AntdButton(
-                            'Delete Task', 
-                            id='seg-delete-task',
+                            'Delete Project', 
+                            id='seg-delete-project',
                             type='primary',
                             icon=fac.AntdIcon(icon='antd-delete'),
                             style={'backgroundColor':'#ca8269'}
                         ),
-                        id='seg-delete-task-confirm',
+                        id='seg-delete-project-confirm',
                         locale='en-us',
                         arrow='hide',
                         okText='yes',
@@ -214,30 +202,22 @@ content_panel = html.Div(
                         id='seg-bug-panel',
                         size='middle',
                         style={'display':'none'}
-                    )
+                    ),
+                    html.Div(children=None, id='seg-refresh-status', style={'display':'none'}),
                 ],
                 size='middle',
                 style={'marginTop':'24.5px'},
             ),
             fac.AntdTable(
                 columns=[
-                    {'title': 'creator', 'dataIndex': 'creator', 'width':'21.7%', 'renderOptions': {'renderType': 'ellipsis'}},
-                    {'title': 'model', 'dataIndex': 'model', 'width':'21.6%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'creator', 'dataIndex': 'creator', 'width':'15%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'date', 'dataIndex': 'date', 'width':'15%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'model', 'dataIndex': 'model', 'width':'15%', 'renderOptions': {'renderType': 'ellipsis'}},
                     {'title': 'diameter', 'dataIndex': 'diameter', 'renderOptions': {'renderType': 'ellipsis'}},
                     {'title': 'batchsize', 'dataIndex': 'batchsize', 'renderOptions': {'renderType': 'ellipsis'}},
-                    {'title': 'GPU', 'dataIndex': 'GPU', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'gpu', 'dataIndex': 'gpu', 'renderOptions': {'renderType': 'ellipsis'}},
                     {'title': 'progress', 'dataIndex': 'progress', 'width':'21.2%', 'renderOptions': {'renderType': 'mini-ring-progress'}}
                 ],
-                # data=[
-                #     {
-                #         'creator': 'zhouyb',
-                #         'model': 'cyto3',
-                #         'diameter': '0',
-                #         'batchsize': '8',
-                #         'GPU': 'True',
-                #         'progress': 0.5,
-                #     }
-                # ],
                 style={'width': '100%'},
                 id='seg-table-metadata',
                 locale='en-us',
@@ -248,22 +228,13 @@ content_panel = html.Div(
             fac.AntdTable(
                 columns=[
                     {'title': 'z', 'dataIndex': 'z', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
-                    {'title': 'image', 'dataIndex': 'image', 'width':'36%', 'renderOptions': {'renderType': 'ellipsis'}},
+                    {'title': 'img', 'dataIndex': 'img', 'width':'36%', 'renderOptions': {'renderType': 'ellipsis'}},
                     {'title': 'gem', 'dataIndex': 'gem', 'width':'36%', 'renderOptions': {'renderType': 'ellipsis'}},
-                    {'title': 'registration','dataIndex': 'registration', 'width':'10%', 'renderOptions': {'renderType': 'status-badge'}},
-                    {'title': 'segmentation','dataIndex': 'segmentation', 'width':'10%', 'renderOptions': {'renderType': 'status-badge'}}
+                    {'title': 'segmentation','dataIndex': 'segmentation', 'width':'10%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'postprocess','dataIndex': 'postprocess', 'width':'10%', 'renderOptions': {'renderType': 'status-badge'}},
                 ],
-                # data=[
-                #     {
-                #         'z': 1,
-                #         'image': 'image2',
-                #         'gem': 'gem1',
-                #         'registration': {'status': 'success', 'text': 'success'},
-                #         'segmentation': {'status': 'success', 'text': 'success'},
-                #     }
-                # ]*3,
                 style={'width': '100%'},
-                id='seg-table-tasklist',
+                id='seg-table-slices',
                 bordered=True,
                 locale='en-us',
                 pagination=False,

@@ -268,27 +268,27 @@ content_panel = html.Div(
             fac.AntdTable(
                 columns=[
                     {'title': 'z', 'dataIndex': 'z', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
-                    {'title': 'registration','dataIndex': 'registration', 'group': 'Segmentation', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                     {'title': 'segmentation','dataIndex': 'segmentation', 'group': 'Segmentation', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
+                    {'title': 'postprocess','dataIndex': 'seg_postprocess', 'group': 'Segmentation', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                     {'title': 'preprocess','dataIndex': 'preprocess', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                     {'title': 'train','dataIndex': 'train', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                     {'title': 'postprocess','dataIndex': 'postprocess', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                     {'title': 'patchprocess','dataIndex': 'patchprocess', 'group': 'Expansion', 'width':'15%', 'renderOptions': {'renderType': 'status-badge'}},
                 ],
-                conditionalStyleFuncs={ 
+                conditionalStyleFuncs={
                     label: """
                         (record, index) => {
                             return { style: { backgroundColor: "#FAFAFA" } }
                         }
                     """ 
-                    for label in ['z', 'registration', 'segmentation']
+                    for label in ['z', 'segmentation', 'seg_postprocess']
                 },
                 style={'width': '100%'},
                 id='exp-table-tasklist',
                 bordered=True,
                 locale='en-us',
                 pagination=False,
-                maxHeight='calc(93vh - 290px)'
+                maxHeight='calc(93vh - 335px)'
             )
         ],
         direction='vertical',

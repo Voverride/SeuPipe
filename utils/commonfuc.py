@@ -20,9 +20,41 @@ import matplotlib.colors as mcolors
 import io
 from utils.colors import *
 from dataManager.workspace import *
+import plotly.graph_objects as go
 import random
 import pickle
 import cv2
+
+def get_mask_contour_figure(stain, mask, contour, title=None, showmask=False, showcontour=True, mask_opacity=0.7):
+    """
+    获取stain， mask，contour， 叠加交互图
+    """
+    if stain.ndim == 2:
+        stain_rgb = np.stack([stain]*3, axis=-1)
+    else:
+        stain_rgb = stain[..., :3]
+    
+    fig = get_imgfig_withplotly(stain_rgb, title=title)
+
+    fig.add_trace(go.Image(
+        source=f"data:image/png;base64,{array_to_base64(mask)}",
+        opacity=mask_opacity,
+        visible=showmask,
+    ))
+
+    fig.add_trace(go.Image(
+        source=f"data:image/png;base64,{array_to_base64(contour)}",
+        visible=showcontour,
+    ))
+    return fig
+
+def get_current_date():
+    """
+    获取当前日期
+    """
+    now = datetime.now()
+    formatted_time = now.strftime("%Y-%m-%d %H:%M")
+    return formatted_time
 
 def compress_image(image, target_height=1024, target_width=1024):
     """
@@ -166,7 +198,7 @@ def generate_cell_masks(mask_array, scale=255, hex_colors=None, background=np.na
     
     return colored_rgb, contour_rgb
 
-def generate_cell_masks_rgba(mask_array, scale=255, hex_colors=scientific_colors):
+def generate_cell_masks_rgba(mask_array, scale=255, hex_colors=primaryColors):
     """
     输入: 
         mask_array (numpy.ndarray or scipy.sparse.csr_matrix): 细胞编号矩阵（0=背景，非零值=细胞编号）
@@ -291,13 +323,6 @@ def array_to_base64(arr):
     pil_img.save(buf, format='PNG')
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-def get_current_date():
-    """
-    获取当前日期
-    """
-    now = datetime.now()
-    formatted_time = now.strftime("%Y/%m/%d %H:%M")
-    return formatted_time
 def get_imgfig_withplotly(img_array, title=None):
     """
     基于图像矩阵绘制交互图形

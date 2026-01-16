@@ -7,20 +7,18 @@ control_panel = html.Div(
     fac.AntdCard(
         fac.AntdSpace(
             [
-                dcc.Interval(id="init-restore-maskviewer", interval=1, max_intervals=1),
-                dcc.Store(id='maskviewer-store-taskname', storage_type='local'),
                 fac.AntdSpace(
                     [
                         fac.AntdText('Select Project'),
                         fac.AntdTooltip(
                             fac.AntdSelect(
-                                id='maskviewer-select-taskname',
+                                id='mv-select-project',
                                 debounceWait=300,
                                 locale='en-us',
                                 allowClear=False,
                                 style={'width':'100%'}
                             ),
-                            id='maskviewer-select-taskname-tooltip',
+                            id='mv-select-project-tooltip',
                             title=fac.AntdText('select project'),
                             open=False,
                             color='white'
@@ -35,13 +33,13 @@ control_panel = html.Div(
                         fac.AntdText('Select Slice', id='mv-select-slice-label'),
                         fac.AntdTooltip(
                             fac.AntdSelect(
-                                id='maskviewer-select-slice',
+                                id='mv-select-slice',
                                 debounceWait=300,
                                 locale='en-us',
                                 allowClear=False,
                                 style={'width':'100%'}
                             ),
-                            id='maskviewer-select-slice-tooltip',
+                            id='mv-select-slice-tooltip',
                             title=fac.AntdText('select slice'),
                             open=False,
                             color='white'
@@ -53,20 +51,36 @@ control_panel = html.Div(
                 ),
                 fac.AntdSpace(
                     [
-                        fac.AntdText('Select Graph', id='mv-select-graph-label'),
-                        fac.AntdTooltip(
-                            fac.AntdSelect(
-                                id='maskviewer-select-graph',
-                                options=['registration', 'segmentation'],
-                                value='registration',
-                                debounceWait=300,
-                                locale='en-us',
-                                allowClear=False,
-                                style={'width':'100%'}
-                            ),
-                            id='maskviewer-select-graph-tooltip',
-                            open=False,
-                            color='white'
+                        fac.AntdText('Select Figure', id='mv-select-figure-label'),
+                        fac.AntdSpace(
+                            [
+                                fac.AntdTooltip(
+                                    fac.AntdSelect(
+                                        id='mv-select-figure',
+                                        options=[],
+                                        debounceWait=300,
+                                        locale='en-us',
+                                        allowClear=False,
+                                        style={'width':'160px'}
+                                    ),
+                                    id='mv-select-figure-tooltip',
+                                    title=fac.AntdText('select figure'),
+                                    open=False,
+                                    color='white'
+                                ),
+                                fac.AntdTooltip(
+                                    fac.AntdButton(
+                                        id='mv-button-add-contrast',
+                                        size='small',
+                                        icon=fac.AntdIcon(icon='antd-plus', style={'color': "#BDBDBD"}),
+                                        style={'width':'30px', 'height':'30px'}
+                                    ),
+                                    title=fac.AntdText('add contrast figure'),
+                                    color='white'
+                                )
+                            ],
+                            size='small',
+                            style={'width':'100%'}
                         ),
                     ],
                     direction='vertical',
@@ -75,57 +89,48 @@ control_panel = html.Div(
                 ),
                 fac.AntdSpace(
                     [
-                        fac.AntdText('Left Graph', id='mv-left-graph-label'),
-                        fac.AntdTooltip(
-                            fac.AntdSelect(
-                                id='maskviewer-left-graph',
-                                options=[],
-                                value='watershed',
-                                debounceWait=300,
-                                locale='en-us',
-                                allowClear=False,
-                                disabled=True,
-                                style={'width':'100%'}
-                            ),
-                            id='maskviewer-left-graph-tooltip',
-                            title=fac.AntdText('select left graph'),
-                            open=False,
-                            color='white'
+                        fac.AntdText('Contrast Figure', id='mv-contrast-figure-label'),
+                        fac.AntdSpace(
+                            [
+                                fac.AntdTooltip(
+                                    fac.AntdSelect(
+                                        id='mv-select-contrast',
+                                        options=[],
+                                        debounceWait=300,
+                                        locale='en-us',
+                                        allowClear=False,
+                                        style={'width':'160px'}
+                                    ),
+                                    id='mv-select-contrast-tooltip',
+                                    title=fac.AntdText('select contrast figure'),
+                                    open=False,
+                                    color='white'
+                                ),
+                                fac.AntdTooltip(
+                                    fac.AntdButton(
+                                        id='mv-button-remove-contrast',
+                                        size='small',
+                                        icon=fac.AntdIcon(icon='antd-minus', style={'color': "#BDBDBD"}),
+                                        style={'width':'30px', 'height':'30px'}
+                                    ),
+                                    title=fac.AntdText('remove contrast figure'),
+                                    color='white'
+                                )
+                            ],
+                            size='small',
+                            style={'width':'100%'}
                         ),
                     ],
+                    id='mv-contrast-figure-space',
                     direction='vertical',
                     size='small',
-                    style={'width':'100%'}
-                ),
-                fac.AntdSpace(
-                    [
-                        fac.AntdText('Right Graph', id='mv-right-graph-label'),
-                        fac.AntdTooltip(
-                            fac.AntdSelect(
-                                id='maskviewer-right-graph',
-                                options=[],
-                                value='cellpose',
-                                debounceWait=300,
-                                locale='en-us',
-                                allowClear=False,
-                                disabled=True,
-                                style={'width':'100%'}
-                            ),
-                            id='maskviewer-right-graph-tooltip',
-                            title=fac.AntdText('select right graph'),
-                            open=False,
-                            color='white'
-                        ),
-                    ],
-                    direction='vertical',
-                    size='small',
-                    style={'width':'100%'}
+                    style={'width':'100%', 'display':'none'}
                 ),
                 fac.AntdCenter(
                     fac.AntdSpace(
                         [
-                            fac.AntdCheckbox(id='mv-checkbox-mask', label='mask', checked=False, disabled=True),
-                            fac.AntdCheckbox(id='mv-checkbox-contour', label='contour', checked=True, disabled=True),
+                            fac.AntdCheckbox(id='mv-checkbox-mask', label='mask', checked=False),
+                            fac.AntdCheckbox(id='mv-checkbox-contour', label='contour', checked=True),
                         ],
                         size='large'
                     ),
@@ -133,17 +138,38 @@ control_panel = html.Div(
                 fac.AntdDivider(),
                 fac.AntdSpace(
                     [
+                        fac.AntdText('Select Export Project'),
+                        fac.AntdTooltip(
+                            fac.AntdSelect(
+                                id='mv-select-export-project',
+                                debounceWait=300,
+                                locale='en-us',
+                                allowClear=False,
+                                style={'width':'100%'}
+                            ),
+                            id='mv-select-export-project-tooltip',
+                            title=fac.AntdText('select export project'),
+                            open=False,
+                            color='white'
+                        ),
+                    ],
+                    direction='vertical',
+                    size='small',
+                    style={'width':'100%'}
+                ),
+                fac.AntdSpace(
+                    [
                         fac.AntdText('Select Export Type', id='mv-select-export-type-label'),
                         fac.AntdTooltip(
                             fac.AntdSelect(
-                                id='maskviewer-select-export-type',
+                                id='mv-select-export-type',
                                 options=[],
                                 debounceWait=300,
                                 locale='en-us',
                                 allowClear=False,
                                 style={'width':'100%'}
                             ),
-                            id='maskviewer-select-export-type-tooltip',
+                            id='mv-select-export-type-tooltip',
                             title=fac.AntdText('select export type'),
                             open=False,
                             color='white'
@@ -156,11 +182,12 @@ control_panel = html.Div(
                 fac.AntdButton(
                     'Export Data', 
                     type='primary',
-                    id='maskviewer-button-exportData',
+                    id='mv-button-exportData',
                     block=True,
                     icon=fac.AntdIcon(icon='antd-save'),
                     style={'backgroundColor':'#ca8269'}
-                )
+                ),
+                dcc.Store(id='mv-store-figure-type', data={'left':False, 'right':False, 'contrast':False}),
             ],
             size='large',
             direction='vertical',
@@ -169,7 +196,7 @@ control_panel = html.Div(
         styles={'header': {'display': 'none'}},
         style={'height':'93vh', 'maxHeight': '93vh','overflowY': 'auto'},
     ), 
-    id='segmentation-control_panel',
+    id='mv-control_panel',
 )
 
 content_panel = html.Div(
@@ -182,22 +209,13 @@ content_panel = html.Div(
                             dcc.Graph(
                                 id="mv-graph-left", 
                                 config={'displaylogo':False}, 
-                                style={'display':'block', 'height':'90vh', 'width':'100%', 'visibility':'hidden'}
+                                style={'display':'block', 'height':'90vh', 'width':'100%', 'visibility':'visible'}
                             ),
                         ),
                         'collapsible': True,
-                    },
-                    {
-                        'children': fac.AntdCenter(
-                            dcc.Graph(
-                                id="mv-graph-right", 
-                                config={'displaylogo':False}, 
-                                style={'display':'block', 'height':'90vh', 'width':'100%', 'visibility':'hidden'}
-                            ),
-                        ),
-                        'collapsible': True,
-                    }    
+                    } 
                 ],
+                id='mv-splitter',
             ),
         )
     ],

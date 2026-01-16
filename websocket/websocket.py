@@ -44,11 +44,23 @@ class WebSocket:
         通知处于扩增任务页面的用户更新状态
         """
         await ms.serverSend(ms._updateExpansionStatus_s2c, ws=self)
+
+    async def notifyUpdateSegmentationStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于分割任务页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateSegmentationStatus_s2c, ws=self, **kwargs)
     
     async def notifyUpdateRegionClipStatus(self, operation, key, value, **kwargs):
         """
         通知处于区域裁剪任务页面的用户更新状态
         """
         await ms.serverSend(ms._updateRegionClipStatus_s2c, ws=self, **kwargs)
+
+    async def notifyUpdateClusteringStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于聚类任务页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateClusteringStatus_s2c, ws=self, **kwargs)
 
 ws = WebSocket()

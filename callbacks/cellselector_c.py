@@ -3,7 +3,19 @@ from controller.auth import *
 from websocket.websocket import ms
 from pages.components.fileSelecter import fileSelecter
 from dash.exceptions import PreventUpdate
-from dash import callback, Input, Output, State, no_update, callback_context
+from dash import callback, Input, Output, State, no_update, callback_context, Patch
+
+@callback(
+    Input('sel-cluster-showBug', 'nClicks'),
+    State('sel-select-project', 'value'),
+    prevent_initial_call=True
+)
+def show_bug(nc, project):
+    """
+    显示聚类异常信息
+    """
+    if nc and project:
+        show_bug_info(project)
 
 
 @callback(
@@ -22,16 +34,19 @@ def export_data(nc, project):
             fileSelecter.open_export_box()
 
 @callback(
-    Output('sel-select-slice', 'value', allow_duplicate=True),
     Input('refresh-sel-status', 'children'),
+    State('sel-select-project', 'value'),
     State('sel-select-slice', 'value'),
     prevent_initial_call=True
 )
-def refresh_cell_selector_status(_, slice):
+def refresh_cell_selector_status(_, project, slice):
     """
     刷新细筛选状态
     """
-    return slice
+    if project and not slice:
+        set_props('sel-select-project', dict(value=project))
+    if project and slice:
+        set_props('sel-select-slice', dict(value=slice))
 
 @callback(
      Input('sel-button-retain', 'nClicks'),
@@ -91,15 +106,38 @@ def update_operation_button(selectedData):
     return False, False
 
 @callback(
+    Output('sel-cell-graph', 'figure', allow_duplicate=True),
+    Input('sel-checkbox-image', 'checked'),
+    Input('sel-checkbox-spot', 'checked'),
+    Input('sel-select-spotSize', 'value'),
+    Input('sel-colorPicker-spotColor', 'value'),
+    State('sel-select-slice', 'value'),
+    State('sel-store-clusters', 'data'),
+    prevent_initial_call=True
+)
+def update_show_image_scatter(show_image, show_scatter, spotSize, spotColor, slice, clusters):
+    """
+    更新是否显示图像和散点图
+    """
+    if not slice:
+        raise PreventUpdate
+    fig = Patch()
+    fig = update_image_style(fig, show_image, show_scatter, clusters, scatter_color=spotColor, scatter_size=spotSize)
+    return fig
+
+@callback(
     Output('sel-cell-graph', 'figure'),
     Input('sel-select-slice', 'value'),
     State('sel-select-project', 'value'),
+    State('sel-checkbox-image', 'checked'),
+    State('sel-checkbox-spot', 'checked'),
+    State('sel-select-spotSize', 'value'),
+    State('sel-colorPicker-spotColor', 'value'),
     running=[
-        (Output('sel-select-slice', 'disabled'), True, False),
-        (Output('sel-text-slice', 'children'), 'Loading...', 'Select Slice'),
+        (Output('sel-select-slice', 'disabled'), True, False)
     ]
 )
-def update_slice_graph(slice, project):
+def update_slice_graph(slice, project, show_image, show_scatter, spotSize, spotColor):
     """
     更新切片图像
     """
@@ -109,7 +147,13 @@ def update_slice_graph(slice, project):
         project=project,
         slice=slice
     ))
-    fig = get_slice_graph(project, slice)
+    fig, clusters = get_slice_graph(project, slice)
+    set_props('sel-store-clusters', dict(data=clusters))
+    if clusters == 1:
+        set_props('sel-colorPicker-spotColor', dict(disabled=False))
+    else:
+        set_props('sel-colorPicker-spotColor', dict(disabled=True))
+    fig = update_image_style(fig, show_image, show_scatter, clusters, scatter_color=spotColor, scatter_size=spotSize)
     if fig is None:
         return no_update
     return fig
@@ -123,8 +167,15 @@ def update_slice_options(project):
     """
     更新切片选项
     """
+    ms.clinetSend(ms._updateParams_c2s, params=dict(
+        project=project,
+        slice=None
+    ))
     if project is None:
         return no_update, no_update
+    show_clustering = update_cluster_status(project)
+    if show_clustering:
+        return None, []
     slices = selData.get_project_slices(project)
     return None, slices
 
@@ -159,6 +210,9 @@ def delete_project(nc, project_name):
     删除项目
     """
     if nc and project_name and verify_modify_permission():
+        if selData.is_clustering(project_name):
+            set_head_notice(f'{project_name} is clustering, please wait...!', type='warning')
+            return no_update, no_update, no_update, no_update
         selData.delete_project(project_name)
         set_head_notice('Delete successfully!', type='success')
         return None, None, None, []
@@ -170,12 +224,14 @@ def delete_project(nc, project_name):
     Input('sel-button-submitProject-modal', 'nClicks'),
     State('sel-select-project-modal', 'value'),
     State('sel-select-result-modal', 'value'),
+    State('sel-input-resolution-modal', 'value'),
+    State('sel-input-iteration-modal', 'value'),
     running=[
         (Output('sel-button-submitProject-modal', 'loading'), True, False),
     ],
     prevent_initial_call=True
 )
-def submit_project(nc, project, result):
+def submit_project(nc, project, result, resolution, iteration):
     """
     提交项目
     """
@@ -187,9 +243,25 @@ def submit_project(nc, project, result):
     if not result:
         set_head_notice('Please select a result first!', type='warning')
         return no_update, True
-    project_name = selData.create_project(project, result)
+    project_name = create_project(project, result, resolution, iteration)
     set_head_notice('Created successfully!', type='success')
     return project_name, False
+
+@callback(
+    Output('sel-input-resolution-modal', 'value'),
+    Output('sel-input-resolution-modal', 'disabled'),
+    Output('sel-input-iteration-modal', 'value'),
+    Output('sel-input-iteration-modal', 'disabled'),
+    Input('sel-switch-clustering-modal', 'checked')
+)
+def update_resolution_input_disabled(checked):
+    """
+    更新分辨率输入框是否禁用
+    """
+    if checked:
+        return 0.8, False, 0, False
+    else:
+        return None, True, None, True
 
 @callback(
     Output('sel-select-result-modal', 'options'),
@@ -209,6 +281,7 @@ def update_project_result_options(project):
     Output('sel-select-project-modal', 'options'),
     Output('sel-select-project-modal', 'value'),
     Output('sel-select-result-modal', 'value'),
+    Output('sel-switch-clustering-modal', 'checked'),
     Input('sel-button-newProject', 'nClicks')
 )
 def open_newproject_modal(nClicks):
@@ -217,6 +290,6 @@ def open_newproject_modal(nClicks):
     """
     if nClicks and verify_modify_permission():
         projects = get_seg_projects()
-        return True, projects, None, None
+        return True, projects, None, None, False
     else:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, False  

@@ -1,195 +1,176 @@
 from controller.segmentation_ctl import *
-from dash import callback, Input, Output, State, no_update, Patch
+from dash import callback, Input, Output, State, no_update
 from pages.components.fileSelecter import fileSelecter
-from dash.exceptions import PreventUpdate
+from controller.auth import verify_modify_permission
+from websocket.websocket import ms
+
 @callback(
     Input('seg-button-showBug', 'nClicks'),
-    State('seg-select-taskname', 'value'),
+    State('seg-select-project', 'value'),
     prevent_initial_call=True
 )
-def show_bug(nc, taskName):
+def show_bug(nc, project):
+    """
+    显示运行时异常
+    """
     if nc:
-        raise_runtime_bug(taskName)
-@callback(
-    Output('seg-table-metadata', 'data', allow_duplicate='True'),
-    Output('seg-table-tasklist', 'data', allow_duplicate='True'),
-    Output('seg-bug-panel', 'style'),
-    Input('segmentation-interval', 'n_intervals'),
-    State('seg-select-taskname', 'value'),
-    prevent_initial_call=True
-)
-def update_segment_status(n_intervals, taskname):
-    """
-    同步后台进程至前端
-    """
-    if n_intervals:
-        try:
-            metadata = no_update
-            data = no_update
-            style = no_update
-            update = False
-            pmetadata, pdata, exception = segData.get_diff(taskname)
-            if pmetadata is not None:
-                metadata = pmetadata
-                update = True
-            if pdata is not None:
-                data = pdata
-                update = True
-            if exception is not None:
-                update = True
-                style = {'display':'flex'}
-            if update:
-                return metadata, data, style
-        except Exception as e:
-            pass
-    raise PreventUpdate
+        raise_runtime_bug(project)
 
 @callback(
-    Output('segmentation-interval', 'disabled'),
-    Input('segmentation-event-loop', 'n_intervals'),
-    State('seg-select-taskname', 'value'),
+    Output('seg-select-project', 'value', allow_duplicate=True),
+    Input('seg-refresh-status', 'children'),
+    State('seg-select-project', 'value'),
     prevent_initial_call=True
 )
-def event_loop(n_intervals, taskname):
+def refresh_segmentation_status(_, projectname):
     """
-    监听分割任务状态
+    刷新分割项目状态
     """
-    if n_intervals:
-        task_running = segData.has_running_task(taskname)
-        task_virtual = segData.has_userVirtualTask(taskname)
-        if task_running or task_virtual:
-            return False
-        return True
-    raise PreventUpdate
+    return projectname
 
 @callback(
-    Input('seg-start-task', 'nClicks'),
-    State('seg-select-taskname', 'value'),
+    Input('seg-start-project', 'nClicks'),
+    State('seg-select-project', 'value'),
     prevent_initial_call=True
 )
-def start_segment_task(nc, taskname):
+def start_segment_project(nc, projectname):
     """
-    启动分割任务
+    启动分割项目
     """
     if nc and verify_modify_permission():
-        if taskname:
-            task_running = segData.has_running_task(taskname)
-            task_virtual = segData.has_userVirtualTask(taskname)
-            if task_running or task_virtual:
-                set_head_notice(taskname+' is running, please wait for it to complete !', type='warning')
-                return
-            start_segmentation_task(taskname)
+        if projectname:
+            start_segmentation_project(projectname)
         else:
-            set_head_notice('Please select a task to start !', type='warning')
+            set_head_notice('Please select a project to start !', type='warning')
 
 @callback(
-    Input('seg-delete-task-confirm', 'confirmCounts'),
-    State('seg-select-taskname', 'value'),
-    running=[
-        (Output('seg-delete-task', 'loading'), True, False),
-        (Output('seg-start-task', 'disabled'), True, False),
-        (Output('seg-select-taskname', 'disabled'), True, False)
-    ],
-    prevent_initial_call=True
+    Input('seg-init-restore', 'n_intervals'),
+    State('seg-store-project', 'data')
 )
-def delete_task(nc, taskName):
+def restore_previous_project(_, projectName):
     """
-    删除任务
+    恢复初始数据
     """
-    if nc and taskName and verify_modify_permission():
-        task_running = segData.has_running_task(taskName)
-        task_virtual = segData.has_userVirtualTask(taskName)
-        if task_running or task_virtual:
-            set_head_notice(taskName+' is running, please wait for it to complete !', type='warning')
-            return
-        delete_task_from_disk(taskName)
-@callback(
-    Input('init-restore-segmentation', 'n_intervals'),
-    State('seg-store-taskname', 'data')
-)
-def restore_segmentation(n_intervals, lastTaskName):
-    """
-    初始回调函数，恢复网页状态
-    """
-    if n_intervals:
-        restore_initial_data(lastTaskName)
-@callback(
-    Input('seg-select-taskname', 'value'),
-)
-def update_table_tasklist(taskName):
-    """
-    根据下拉列表选项更新任务表格
-    """
-    if taskName:
-        update_table_with_tasklist(taskName)
+    restore_init_data(projectName)
 
 @callback(
-    Output('seg-select-taskname', 'options'),
-    Input('seg-select-taskname-tooltip', 'open'),
+    Input('seg-select-project', 'value'),
+    State('seg-store-project', 'data')
+)
+def update_table_project_data(projectName, previousProject):
+    """
+    根据下拉列表选项更新项目数据
+    """
+    if projectName:
+        ms.clinetSend(ms._updateParams_c2s, params=dict(project=projectName))
+        update_table_with_project(projectName)
+        if projectName != previousProject:
+            set_props('seg-store-project', {'data': projectName})
+
+@callback(
+    Output('seg-select-project', 'options'),
+    Input('seg-select-project-tooltip', 'open'),
     prevent_initial_call=True
 )
-def update_tasklist_options(open):
+def update_projectlist_options(open):
+    """
+    更新项目下拉列表选项
+    """
     if open:
-        tasks = list(segData.get_exist_tasks())
-        tasks.sort()
-        return tasks
+        projects = segData.get_exist_projects()
+        return projects
     return no_update
 
 @callback(
-    Input('seg-button-submitTaskList', 'nClicks'),
-    State('seg-input-taskname', 'value'),
-    State('seg-tasklist-filename', 'type'),
+    Input('seg-delete-project-confirm', 'confirmCounts'),
+    State('seg-select-project', 'value'),
+    running=[
+        (Output('seg-delete-project', 'loading'), True, False),
+        (Output('seg-start-project', 'disabled'), True, False),
+        (Output('seg-select-project', 'disabled'), True, False)
+    ],
+    prevent_initial_call=True
+)
+def delete_project(nc, projectName):
+    """
+    删除项目
+    """
+    if nc and projectName and verify_modify_permission():
+        project_running = segData.has_running_project(projectName)
+        if project_running:
+            set_head_notice(f'{projectName} is running, please wait for it to complete !', type='warning')
+            return
+        delete_project_from_disk(projectName)
+
+@callback(
+    Input('seg-button-submitProject', 'nClicks'),
+    State('seg-input-projectName', 'value'),
+    State('seg-project-filename', 'type'),
     State('seg-select-modelType', 'value'),
     State('seg-input-diameter', 'value'),
     State('seg-input-batchsize', 'value'),
     State('seg-checkbox-useGPU', 'checked'),
-    State('main-title-username', 'children'),
     prevent_initial_call=True
 )
-def submit_tasklist(nc, taskName, fileStatus, modelType, diameter, batchsize, useGPU, username):
+def submit_project(nc, projectName, fileStatus, modelType, diameter, batchsize, useGPU):
     """
-    检查提交的任务列表，并将任务持久化到本地
+    检查提交的项目，并将项目持久化到本地
     """
     if nc:
-        process_submited_tasklist(taskName, fileStatus, modelType, diameter, batchsize, useGPU, username)
+        process_submited_project(projectName, fileStatus, modelType, diameter, batchsize, useGPU)
 
 @callback(
-    Output('seg-tasklist-filename', 'children', allow_duplicate='True'),
-    Output('seg-tasklist-filename', 'type', allow_duplicate='True'),
-    Input('seg-dragger-upload', 'lastUploadTaskRecord'),
+    Output('seg-project-filename', 'children', allow_duplicate='True'),
+    Output('seg-project-filename', 'type', allow_duplicate='True'),
+    Input('seg-dragger-upload-project', 'lastUploadTaskRecord'),
     prevent_initial_call=True
 )
-def upload_status(lastRecord):
+def update_upload_status(lastRecord):
     """
-    监听文件上传状态
+    监听项目文件上传状态
     """
     if lastRecord['taskStatus']=='success':
         return lastRecord['fileName'], 'success'
     else:
         set_head_notice(lastRecord['fileName']+' upload failed, please check file format!', type='error')
         return 'No file', 'secondary'
+
 @callback(
-    Input('seg-button-importTaskList', 'nClicks'),
-    prevent_initial_call=True  
+    Input('seg-button-project', 'nClicks'),
+    prevent_initial_call=True
 )
-def open_import_box(nc):
+def open_upload_box(nc):
     """
-    打开导入任务列表文件窗口
+    打开上传项目文件窗口
     """
     if nc:
         fileSelecter.open_import_box()
 
 @callback(
-    Output('seg-modal-newtask', 'visible'),
-    Output('seg-tasklist-filename', 'children'),
-    Output('seg-tasklist-filename', 'type'),
-    Input('segmentation-button-newtask', 'nClicks'),
+    Output('seg-button-submitProject', 'disabled'),
+    Output('seg-input-projectName', 'status'),
+    Input('seg-input-projectName', 'value')
+)
+def validate_project_name(project_name):
+    """
+    验证项目名称是否为空
+    """
+    if not project_name:
+        return True, 'error'
+    return False, None
+
+@callback(
+    Output('seg-modal-newproject', 'visible'),
+    Output('seg-project-filename', 'children'),
+    Output('seg-project-filename', 'type'),
+    Output('seg-input-projectName', 'value'),
+    Input('seg-button-newproject', 'nClicks'),
     prevent_initial_call=True
 )
-def show_newtask_modal(nClicks):
+def show_newproject_modal(nClicks):
     """
-    显示创建任务对话框
+    显示创建项目对话框
     """
     if nClicks and verify_modify_permission():
-        return True, 'No file', 'secondary'
-    return no_update, no_update, no_update
+        return True, 'No file', 'secondary', None
+    return no_update, no_update, no_update, no_update

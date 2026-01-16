@@ -1,9 +1,10 @@
-from dash import set_props
 from dataManager.workspace import *
 from dataManager.maskviewer_d import maskData
 from dataManager.segmentation_d import segData
 from controller.notice import set_head_notice
+import feffery_antd_components as fac
 import scanpy as sc
+from dash import dcc
 import anndata as ad
 from scipy.sparse import csr_matrix
 import numpy as np
@@ -11,8 +12,18 @@ import pandas as pd
 
 graph_visible_style = {'width': '100%', 'height':'90%', 'margin':'auto'}
 
+contrast_graph = {
+    'children': fac.AntdCenter(
+        dcc.Graph(
+            id="mv-graph-right", 
+            config={'displaylogo':False}, 
+            style={'display':'block', 'height':'90vh', 'width':'100%', 'visibility':'visible'}
+        ),
+    ),
+    'collapsible': True,
+}
 
-def generate_layer_adata(z, df, mask):
+def generate_layer_adata(z, df, mask, centered=True):
     """
     生成单层anndata
     """
@@ -47,8 +58,13 @@ def generate_layer_adata(z, df, mask):
     y_abs = center_df['y'].values
     mean_x = x_abs.mean()
     mean_y = y_abs.mean()
-    x_centered = x_abs - mean_x
-    y_centered = y_abs - mean_y
+    
+    if centered:
+        x_centered = x_abs - mean_x
+        y_centered = y_abs - mean_y
+    else:
+        x_centered = x_abs
+        y_centered = y_abs
 
     adata = ad.AnnData(
         X = X,
@@ -74,15 +90,15 @@ def export_maskviewer_file(path):
     """
     导出整合后的数据
     """
-    export_task = maskData.get_export_task()
-    taskname = export_task.get('taskname')
-    type = export_task.get('type')
-    taskInfo = segData.read_taskinfo(taskname)
+    export_project = maskData.get_export_project()
+    project = export_project.get('project')
+    type = export_project.get('type')
+    projectInfo = segData.get_project_info(project)
     adatas = []
-    for slice in taskInfo['data']:
+    for slice in projectInfo['slices']:
         z = slice['z']
         bin_path = slice['gem']
-        result_path = segData.get_seg_adata_path(taskname, z)
+        result_path = segData.get_result_path(project, z)
         mask_label = f'{type}_mask'
         segResult = sc.read_h5ad(result_path)
         mask_matrix = segResult.layers[mask_label]
@@ -102,59 +118,3 @@ def export_maskviewer_file(path):
     merged_adata.write_h5ad(path)
     set_head_notice('Export successfully!', 'success')
     return True
-
-def update_graph_with_type(taskname, slice, graph, showMask, showContour, leftGraph, rightGraph):
-    """
-    graphtype改变，更改图像，配准，分割或扩展
-    """
-    if graph=='registration':
-        set_props('mv-checkbox-mask', dict(disabled=True))
-        set_props('mv-checkbox-contour', dict(disabled=True))
-        set_props('maskviewer-left-graph', dict(disabled=True))
-        set_props('maskviewer-right-graph', dict(disabled=True))
-    if slice:
-        if graph=='registration':
-            before, aligned = maskData.get_registration_figure(taskname, slice)
-            set_props('mv-graph-left', dict(figure=before, style=graph_visible_style))
-            set_props('mv-graph-right', dict(figure=aligned, style=graph_visible_style))
-        else:
-            set_props('maskviewer-left-graph', dict(disabled=False))
-            set_props('maskviewer-right-graph', dict(disabled=False))
-            set_props('mv-checkbox-mask', dict(disabled=False))
-            set_props('mv-checkbox-contour', dict(disabled=False))
-            left_graph = maskData.get_graph(taskname, slice, leftGraph, showMask=showMask, showContour=showContour)
-            right_graph = maskData.get_graph(taskname, slice, rightGraph, showMask=showMask, showContour=showContour)
-            set_props('mv-graph-left', dict(figure=left_graph, style=graph_visible_style))
-            set_props('mv-graph-right', dict(figure=right_graph, style=graph_visible_style))
-
-def update_graph_with_slice(taskname, slice, graphType, showMask, showContour, leftGraph, rightGraph):
-    """
-    slice改变， 更改图像，配准，分割或扩展
-    """
-    if taskname and slice:
-        if graphType=='registration':
-            before, aligned = maskData.get_registration_figure(taskname, slice)
-            set_props('mv-graph-left', dict(figure=before, style=graph_visible_style))
-            set_props('mv-graph-right', dict(figure=aligned, style=graph_visible_style))
-        else:
-            left_graph = maskData.get_graph(taskname, slice, leftGraph, showMask=showMask, showContour=showContour)
-            right_graph = maskData.get_graph(taskname, slice, rightGraph, showMask=showMask, showContour=showContour)
-            set_props('mv-graph-left', dict(figure=left_graph, style=graph_visible_style))
-            set_props('mv-graph-right', dict(figure=right_graph, style=graph_visible_style))
-            set_props('maskviewer-left-graph', dict(disabled=False))
-            set_props('maskviewer-right-graph', dict(disabled=False))
-            set_props('mv-checkbox-mask', dict(disabled=False))
-            set_props('mv-checkbox-contour', dict(disabled=False))
-    
-def update_taskname(taskname):
-    """
-    task改变，更新store， 切片列表
-    """
-    set_props('maskviewer-store-taskname', dict(data=taskname))
-    set_props('maskviewer-select-slice', dict(value=None))
-def restore_initial_data(lastTaskName):
-    """
-    恢复网页初始数据
-    """
-    if lastTaskName:
-        set_props('maskviewer-select-taskname', dict(value=lastTaskName))

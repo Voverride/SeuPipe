@@ -22,7 +22,8 @@ class RegionClipData:
         #         'z': {'z', 'image', 'gem'}
         #     },
         # }
-        self._gemCache = cachetools.TTLCache(maxsize=10, ttl=1800)
+        self._useImgCache = True
+        self._gemCache = cachetools.TTLCache(maxsize=5, ttl=1800)
         self._imgCache = cachetools.TTLCache(maxsize=10, ttl=1800)
         self._cordMapFunc = {}
         self._runningTask = {}
@@ -132,7 +133,7 @@ class RegionClipData:
         获取任务图像缓存
         """
         img_key = f'{taskName}_{slicename}'
-        if img_key in self._imgCache:
+        if self._useImgCache and img_key in self._imgCache:
             img = self._imgCache[img_key]
             # 重置缓存计时
             del self._imgCache[img_key]
@@ -144,7 +145,8 @@ class RegionClipData:
             if img_path is None:
                 return None
             img = iio.imread(img_path)
-        self._imgCache[img_key] = img
+        if self._useImgCache:
+            self._imgCache[img_key] = img
         return img
 
     def get_gemCache(self, taskName, slicename, cache=False):

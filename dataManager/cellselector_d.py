@@ -2,19 +2,46 @@ from dataManager.workspace import *
 from controller.auth import get_request_usrname
 from dataManager.segmentation_d import segData
 import shutil
+from utils.observer import observer
+from websocket.websocket import ws
 import pandas as pd
 import scanpy as sc
 from scipy.sparse import issparse
 import cachetools
 import numpy as np
+from utils.typing import StepIcon
 from utils.commonfuc import write_json, read_json, read_pkl
 
 class CellSelectorData:
     def __init__(self):
-        self._projects = cachetools.TTLCache(maxsize=100, ttl=7200)
-        self._positions = cachetools.TTLCache(maxsize=100, ttl=7200)
+        self._projects = cachetools.TTLCache(maxsize=10, ttl=1800)
+        self._positions = cachetools.TTLCache(maxsize=10, ttl=1800)
         self._iswritting = set()
         self._exportProject = dict()
+        self._clustering = dict()
+
+    def is_clustering(self, project):
+        """
+        判断项目是否有聚类任务正在运行
+        """
+        if project in self._clustering:
+            return self._clustering[project].get('running', False)
+        return False
+    def add_clustering(self, project, metadata):
+        """
+        添加项目聚类任务
+        """
+        observered_metadata = observer.observe(metadata, ws.notifyUpdateClusteringStatus, project=project)
+        self._clustering[project] = observered_metadata
+        return observered_metadata
+
+    def remove_clustering(self, project):
+        """
+        删除项目聚类任务
+        """
+        if project in self._clustering:
+            observer.disobserve(self._clustering[project], ws.notifyUpdateClusteringStatus)
+            del self._clustering[project]
 
     def set_export_project(self, project):
         """
@@ -89,7 +116,7 @@ class CellSelectorData:
             'y': centroids['y'].values
         }, index=index_labels)
         df['selected'] = True
-
+        df['cluster'] = 0
         self.add_cell_position(project, slice, df)
         position_path = self.get_position_path(project, slice)
         df.to_csv(position_path, sep='\t')
@@ -121,7 +148,7 @@ class CellSelectorData:
         return position
     def get_seg_mask(self, project_name, slice):
         """
-        获取分割结果路径
+        获取分割结果
         """
         project_info = self.get_project_info(project_name)
         result_type = project_info['result_field']
@@ -132,14 +159,13 @@ class CellSelectorData:
         except:
             return None
     
-    def get_stain_image(self, project_name, slice):
+    def get_stain_fig(self, project_name, slice):
         """
         获取原图
         """
-        project_info = self.get_project_info(project_name)
-        stain_path = project_info['slices'][str(slice)]['stain_path']
-        img = read_pkl(stain_path)
-        return img
+        stain_path = segData.get_stain_path(project_name, slice)
+        fig = read_pkl(stain_path)
+        return fig
     
     def get_gem_path(self, project_name, slice):
         """
@@ -152,7 +178,10 @@ class CellSelectorData:
         """
         获取细胞筛选项目信息
         """
-        if project_name in self._projects:
+        project_info = dict(self._clustering.get(project_name, {}))
+        if project_info: 
+            return project_info
+        elif project_name in self._projects:
             project_info = self._projects[project_name]
             del self._projects[project_name]
         else:
@@ -192,9 +221,10 @@ class CellSelectorData:
         """
         project_folder = self.get_project_folder(project)
         slice_folder = os.path.join(project_folder, f'z_{slice_index}')
+        check_path(slice_folder)
         return slice_folder
 
-    def create_project(self, seg_project: str, result: str):
+    def create_project(self, seg_project: str, result: str, resolution: float, iteration: int):
         """
         创建细胞筛选项目
         """
@@ -202,27 +232,39 @@ class CellSelectorData:
         project_folder = self.get_project_folder(project_name)
         check_path(project_folder)
         slices_metadata = {}
-        segProjectInfo = segData.read_taskinfo(seg_project)
-        for slice in segProjectInfo['data']:
+        segProjectInfo = segData.get_project_info(seg_project)
+        for slice in segProjectInfo['slices']:
             slice_index = slice['z']
             slice_folder = os.path.join(project_folder, f'z_{slice_index}')
             check_path(slice_folder)
-            stain_path = segData.get_seg_stain_figure_path(seg_project, slice_index)
+            stain_path = slice['img']
             gem_path = slice['gem']
-            adata_path = segData.get_seg_adata_path(seg_project, slice_index)
+            adata_path = segData.get_result_path(seg_project, slice_index)
             slices_metadata[slice_index] = {
                 'stain_path': stain_path,
                 'gem_path': gem_path,
                 'adata_path': adata_path
             }
+        steps = {
+            'step1': StepIcon.SCHEDULE,
+            'step2': StepIcon.SCHEDULE,
+            'step3': StepIcon.SCHEDULE,
+            'step4': StepIcon.SCHEDULE,
+            'step5': StepIcon.SCHEDULE,
+            'percent': 0,
+        }
         metadata = {
             'creator': get_request_usrname(),
             'project_name': seg_project,
             'result_field': f'{result}_mask',
+            'resolution': resolution,
+            'iteration': iteration,
+            'exception': None,
+            'steps': steps,
             'slices': slices_metadata,
         }
-        write_json(os.path.join(project_folder, 'metadata.json'), metadata)
-        return project_name
+        write_json(os.path.join(project_folder, 'metadata.json'), metadata)         
+        return project_name, metadata
 
     def get_exist_projects(self):
         """

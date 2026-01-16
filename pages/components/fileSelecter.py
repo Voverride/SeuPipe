@@ -9,7 +9,7 @@ from controller.notice import set_aside_notice
 from setting import setting
 from controller.alignment_ctl import read_alignment_file, export_alignment_file
 from controller.annotation_ctl import read_annotask_refdata, read_annotask_querydata, export_annotation_file
-from controller.segmentation_ctl import read_tasklist_file
+from controller.segmentation_ctl import read_project_metadata_file
 from controller.maskviewer_ctl import export_maskviewer_file
 from controller.cellselector_ctl import export_cellselector_file
 from controller.regionclip_ctl import read_regionclip_file
@@ -135,11 +135,11 @@ class FileSelecter:
         def confirm_overwrite(nc, path, page):
             if nc:
                 status = False
-                if page=='Alignment':
+                if page==setting.alignment:
                     status = export_alignment_file(path)
-                elif page=='Annotation':
+                elif page==setting.annotation:
                     status = export_annotation_file(path)
-                elif page=='MaskViewer':
+                elif page==setting.maskViewer:
                     status = export_maskviewer_file(path)
                 elif page==setting.cellSelector:
                     status = export_cellselector_file(path)
@@ -175,11 +175,11 @@ class FileSelecter:
             filename = no_update
             if nClicks:
                 if title=='Import Data':
-                    if page=='Alignment':
+                    if page==setting.alignment:
                         status = read_alignment_file(path)
                         if status:
                             set_props(self.boxid, {'visible':False})
-                    if page=='Annotation':
+                    if page==setting.annotation:
                         type = self.annotask
                         status = False
                         if type=='ref':
@@ -188,17 +188,17 @@ class FileSelecter:
                             status = read_annotask_querydata(path)
                         if status:
                             set_props(self.boxid, {'visible':False})
-                    if page=='Segmentation':
-                        success = read_tasklist_file(path)
+                    if page==setting.segmentation:
+                        success = read_project_metadata_file(path)
                         if success:
                             self.close_box()
-                    if page=='RegionClip':
+                    if page==setting.regionClip:
                         success = read_regionclip_file(path)
                         if success:
                             self.close_box()
 
                 elif title=='Export Data':
-                    if page=='Alignment':
+                    if page==setting.alignment:
                         if os.path.exists(path):
                             visible = True
                             filename = path
@@ -206,7 +206,7 @@ class FileSelecter:
                             status = export_alignment_file(path)
                             if status:
                                 set_props(self.boxid, {'visible':False})
-                    elif page=='Annotation':
+                    elif page==setting.annotation:
                         if os.path.exists(path):
                             visible = True
                             filename = path
@@ -214,7 +214,7 @@ class FileSelecter:
                             status = export_annotation_file(path)
                             if status:
                                 set_props(self.boxid, {'visible':False})
-                    elif page=='MaskViewer':
+                    elif page==setting.maskViewer:
                         if os.path.exists(path):
                             visible = True
                             filename = path
@@ -249,7 +249,7 @@ class FileSelecter:
                     return False
                 return True
             elif title=='Import Data':
-                if header=='Segmentation' or header=='RegionClip':
+                if header==setting.segmentation or header==setting.regionClip:
                     if os.path.isfile(path):
                         return False
                 elif os.path.exists(path) and path.endswith('.h5ad'):

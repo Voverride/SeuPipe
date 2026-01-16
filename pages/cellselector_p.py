@@ -15,27 +15,70 @@ new_project_modal = fac.AntdModal(
                 allowClear=False,
                 style={'width':335}
             ),
+            fac.AntdSelect(
+                id='sel-select-result-modal',
+                placeholder='Select Result',
+                debounceWait=300,
+                locale='en-us',
+                allowClear=False,
+                style={'width':335}
+            ),
+            fac.AntdSpace(
+              [
+                fac.AntdText('Enable Clustering'),
+                fac.AntdSwitch(checked=False, id='sel-switch-clustering-modal')
+              ]
+            ),
+            fac.AntdTooltip(
+              fac.AntdInputNumber(
+                  min=0.1,
+                  max=3.0,
+                  step=0.1,
+                  precision=1,
+                  disabled=True,
+                  addonBefore='Resolution',
+                  placeholder='Input Resolution',
+                  id='sel-input-resolution-modal',
+                  style={'width': 335},
+              ),
+              title=fac.AntdText('Resolution controls the granularity of clustering. Higher values result in more clusters.'), 
+              color='white'
+            ),
             fac.AntdSpace(
                 [
-                    fac.AntdSelect(
-                        id='sel-select-result-modal',
-                        placeholder='Select Result',
-                        debounceWait=300,
-                        locale='en-us',
-                        allowClear=False,
-                        style={'width':335}
+                  fac.AntdTooltip(
+                    fac.AntdInputNumber(
+                        min=0,
+                        max=20,
+                        step=1,
+                        precision=0,
+                        disabled=True,
+                        addonBefore='n_iteration',
+                        placeholder='Input Iteration',
+                        id='sel-input-iteration-modal',
+                        style={'width': 335},
                     ),
-                    fac.AntdButton(
-                        'Submit',
-                        type='primary',
-                        id='sel-button-submitProject-modal',
-                        icon=fac.AntdIcon(icon='md-launch'),
-                        style={'backgroundColor':'#d0826c', 'width':100}
+                    title=fac.AntdSpace(
+                        [
+                            fac.AntdText('Leiden Iterations:', strong=True),
+                            fac.AntdText('🔸0: Run until convergence'),
+                            fac.AntdText('🔸others: Number of iterations')
+                        ],
+                        direction='vertical',
                     ),
+                    color='white'
+                  ),
+                  fac.AntdButton(
+                      'Submit',
+                      type='primary',
+                      id='sel-button-submitProject-modal',
+                      icon=fac.AntdIcon(icon='md-launch'),
+                      style={'backgroundColor':'#d0826c', 'width':100}
+                  ),
                 ],
+                size='middle',
                 style={'width':'100%', 'marginBottom':'30px'},
-                size='middle'
-            )
+            ),
         ],
         size='middle',
         direction='vertical',
@@ -49,12 +92,86 @@ new_project_modal = fac.AntdModal(
     visible=False
 )
 
+clustring_status_modal = fac.AntdModal(
+    fac.AntdSpace(
+        [
+            fac.AntdDivider(),
+            fac.AntdTimeline(
+                items=[
+                    {
+                        'content': html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        fac.AntdText('Creator:', strong=True, style={'marginRight':'6px'}),
+                                        fac.AntdText(type='success', id='sel-cluster-creator'),  
+                                    ],
+                                    style={'marginRight':'20px'}
+                                ),
+                                fac.AntdButton(
+                                    'Show Bug',
+                                    id='sel-cluster-showBug',
+                                    size='small', 
+                                    type='primary', 
+                                    icon=fac.AntdIcon(icon='antd-bug'), 
+                                    style={'backgroundColor':'#bb5548', 'display':'none'}
+                                )           
+                            ],
+                            style={'width':'100%', 'display': 'flex'}
+                        ),
+                        'icon':fac.AntdAvatar(size='small'),
+                    },
+                    {
+                        'content': 'Data Preparation',
+                        'color':'gray',
+                        'icon': fac.AntdIcon(icon='md-schedule', id='sel-cluster-step1')
+                    },
+                    {
+                        'content': fac.AntdSpace(
+                            [
+                                'Generate AnnData',
+                                fac.AntdProgress(percent=0, id='sel-cluster-percent', style={'width': '200px'}),
+                            ],
+                            size='middle'
+                        ),
+                        'color':'gray',
+                        'icon': fac.AntdIcon(icon='md-schedule', id='sel-cluster-step2')
+                    },
+                    {
+                        'content': 'Preprocess',
+                        'color':'gray',
+                        'icon': fac.AntdIcon(icon='md-schedule', id='sel-cluster-step3')
+                    },
+                    {
+                        'content': 'Clustering',
+                        'color':'gray',
+                        'icon': fac.AntdIcon(icon='md-schedule', id='sel-cluster-step4')
+                    },
+                    {
+                        'content': 'Export Results',
+                        'color':'gray',
+                        'icon': fac.AntdIcon(icon='md-schedule', id='sel-cluster-step5')
+                    }
+                ],
+                id = 'sel-cluster-status'
+            )   
+        ],
+        size='middle',
+        direction='vertical',
+        style={'width':'100%'},
+    ),
+    id='sel-modal-clusteringStatus', 
+    title='Clustering Status',
+    mask=False,
+    width=500,
+    maskClosable=False,
+    visible=False
+)
+
 control_panel = html.Div(
     fac.AntdCard(
         fac.AntdSpace(
             [
-                new_project_modal,
-                html.Div(id='refresh-sel-status', style={'display':'none'}),
                 fac.AntdButton(
                     'Create New Project', 
                     type='primary',
@@ -88,6 +205,43 @@ control_panel = html.Div(
                     style={'width':'100%'}
                 ),
                 fac.AntdDivider(),
+                fac.AntdText('Figure Configuration'),
+                fac.AntdSpace(
+                    [
+                        fac.AntdTooltip(
+                            fac.AntdSlider(id='sel-select-spotSize', min=5, max=20, defaultValue=10, style={'width': '145px'}),
+                            title=fac.AntdText('select spot size'), color='white'
+                        ),
+                        fac.AntdTooltip(
+                            fac.AntdColorPicker(
+                                disabledAlpha=False,
+                                locale='en-us',
+                                presets=[
+                                    {'colors': ["#defcff", "#ffdbfc", "#ffcac5"], 'label': 'presets'}
+                                ],
+                                value='#defcff',
+                                id='sel-colorPicker-spotColor',
+                            ),
+                            title=fac.AntdText('select spot color'), color='white'
+                        ),
+                    ],
+                    size='middle',
+                    style={'width':'100%', 'marginLeft':'-4.5px'}
+                ),
+                fac.AntdCenter(
+                    html.Div(
+                        [
+                            fac.AntdCheckbox(id='sel-checkbox-image', label='Image', checked=True),
+                            fac.AntdCheckbox(id='sel-checkbox-spot', label='Spot', checked=True),
+                        ],
+                        style={
+                            'display': 'flex',
+                            'flex-direction': 'row',
+                            'gap': '45px'
+                        }
+                    ),
+                ),
+                fac.AntdDivider(),
                 fac.AntdButton(
                     'Export Data', 
                     type='primary',
@@ -110,6 +264,9 @@ control_panel = html.Div(
 content_panel = html.Div(
     fac.AntdSpace(
         [
+            new_project_modal,
+            clustring_status_modal,
+            dcc.Store(id='sel-store-clusters', data=1),
             fac.AntdSpace(
                 [
                     fac.AntdButton(
@@ -149,10 +306,11 @@ content_panel = html.Div(
                         okText='yes',
                         placement='bottomLeft',
                         title='Confirm Delete?'
-                    )
+                    ),
+                    html.Div(id='refresh-sel-status', style={'display':'none'})
                 ],
                 size='middle',
-                style={'marginTop':'41px'},
+                style={'marginTop':'24.5px'},
             ),
             fac.AntdCenter(
                 dcc.Graph(

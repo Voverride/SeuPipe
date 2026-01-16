@@ -14,11 +14,6 @@ from scipy.sparse import lil_matrix
 
 
 def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, startx, starty, patchsize, bin_size, n_neighbor):
-    #read data
-    # if prealigned:
-    #     adatasub = st.io.read_bgi_agg(bin_file, image_file, prealigned=True)
-    # else:
-    #     adatasub = st.io.read_bgi_agg(bin_file, image_file)
     if int(patchsize) > 0:
         adatasub = adatasub[int(startx):int(startx)+int(patchsize),int(starty):int(starty)+int(patchsize)].copy()
     
@@ -30,70 +25,11 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
     starty = str(starty)
     patchsize = str(patchsize)
 
-    #print(adatasub.shape)
-    # adatasub.layers['unspliced'] = adatasub.X
     patchsizex, patchsizey = adatasub.shape
-
-    #align staining image with bins
-    # before = adatasub.layers['stain'].copy()
-    # if align:
-    #     st.cs.refine_alignment(adatasub, mode=align, transform_layers=['stain'])
-
-    # fig, axes = plt.subplots(ncols=2, figsize=(16, 8), tight_layout=True)
-    # axes[0].imshow(before)
-    # st.pl.imshow(adatasub, 'unspliced', ax=axes[0], alpha=0.6, cmap='Reds', vmax=10, use_scale=False, save_show_or_return='return')
-    # axes[0].set_title('before alignment')
-    # st.pl.imshow(adatasub, 'stain', ax=axes[1], use_scale=False, save_show_or_return='return')
-    # st.pl.imshow(adatasub, 'unspliced', ax=axes[1], alpha=0.6, cmap='Reds', vmax=10, use_scale=False, save_show_or_return='return')
-    # axes[1].set_title('after alignment')
-
-    # try:
-    #     os.mkdir('fig/')
-    # except FileExistsError:
-    #     print('fig folder exists')
-
-    # plt.savefig('fig/alignment' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.png')
-
-    #nucleus segmentation from staining image
-    # fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
-    # st.cs.mask_nuclei_from_stain(adatasub, otsu_classes = 4, otsu_index=1)
-    # st.pl.imshow(adatasub, 'stain_mask', ax = ax)
-
-    # plt.savefig('fig/stain_mask' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.png')
-
-    # st.cs.find_peaks_from_mask(adatasub, 'stain', 7)
-    # st.cs.watershed(adatasub, 'stain', 5, out_layer='watershed_labels')
-
-    # fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
-    # st.pl.imshow(adatasub, 'stain', save_show_or_return='return', ax=ax)
-    # st.pl.imshow(adatasub, 'watershed_labels', labels=True, alpha=0.5, ax=ax)
-    # plt.savefig('fig/watershed_labels' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.png')
-    #adatasub.write('data/Mouse_brain_Adult_5800:8000:900:900.h5ad')
-    #print(adatasub)
 
     adatasub.write(tmp_dir+'/spots' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.h5ad')
 
     print('Prepare data for neural network...')
-
-    # watershed2x = {} # 获取每个标签对应的x坐标， {label:[x1,x2,x3...]}
-    # watershed2y = {} # 获取每个标签对应的y坐标， {label:[y1,y2,y3...]}
-
-    # for i in range(adatasub.layers['watershed_labels'].shape[0]):
-    #     for j in range(adatasub.layers['watershed_labels'].shape[1]):
-    #         if adatasub.layers['watershed_labels'][i, j] == 0:
-    #             continue
-    #         if adatasub.layers['watershed_labels'][i, j] in watershed2x:
-    #             watershed2x[adatasub.layers['watershed_labels'][i, j]].append(i)
-    #             watershed2y[adatasub.layers['watershed_labels'][i, j]].append(j)
-    #         else:
-    #             watershed2x[adatasub.layers['watershed_labels'][i, j]] = [i]
-    #             watershed2y[adatasub.layers['watershed_labels'][i, j]] = [j]
-
-    # watershed2center = {} # 获取每个标签对应的中心点， {label:[x,y]}
-    # sizes = [] # 每一个label对应的像素数量列表， [size1, size2, size3...]
-    # for nucleus in watershed2x:
-    #     watershed2center[nucleus] = [np.mean(watershed2x[nucleus]), np.mean(watershed2y[nucleus])]
-    #     sizes.append(len(watershed2x[nucleus]))
 
     mask_dict = defaultdict(list)
     lock = Lock()
@@ -167,9 +103,7 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
     for idx in idx2exp:
         for gid in idx2exp[idx]:
             all_exp_merged_bins[idx, gid] = idx2exp[idx][gid]
-            #print(idx, gid, idx2exp[idx][gid])
     all_exp_merged_bins = all_exp_merged_bins.tocsr()
-    #print(all_exp_merged_bins.shape)
 
     all_exp_merged_bins_ad = ad.AnnData(
         all_exp_merged_bins,
@@ -182,17 +116,13 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
     selected_index = all_exp_merged_bins_ad.var[all_exp_merged_bins_ad.var.highly_variable].index
     selected_index = list(selected_index)
     selected_index = [int(i) for i in selected_index]
-    #selected_index = geneidx[selected_index]
-    #print(selected_index, len(selected_index))
 
     with open(tmp_dir+'/variable_genes' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.txt', 'w') as fw:
         for id in selected_index:
             fw.write(id2gene[id] + '\n')
 
-    #check total gene counts
     all_exp_merged_bins = all_exp_merged_bins.toarray()[:, selected_index]
-    #print(all_exp_merged_bins.shape)
-    # cell_bins = {}
+
     x_train_tmp = []
     x_train = []
     x_train_pos = []
@@ -245,9 +175,6 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
                     if len(x_train_tmp) > 500:
                         x_train.extend(x_train_tmp)
                         x_train_tmp = []
-                        #print(np.array(x_train).shape)
-                    #print(x_train)
-                    #print(len(x_train_tmp))
                     x_train_pos.append(x_train_pos_sample)
                     y_train.append(y_train_sample)
                     y_binary_train.append(1)
@@ -281,11 +208,9 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
                         if len(x_train_bg_tmp) > 500:
                             x_train_bg.extend(x_train_bg_tmp)
                             x_train_bg_tmp = []
-                        #print(len(x_train_bg_tmp))
                         x_train_pos_bg.append(x_train_pos_sample)
                         y_train_bg.append(y_train_sample)
                         y_binary_train_bg.append(0)
-                        #print(np.sum(posexp[str(i) + ':' + str(j)]), adatasub.X[i,j])
                     else:
                         x_test_sample = [all_exp_merged_bins[idx, :]]
                         x_test_pos_sample = [[i, j]]
@@ -320,7 +245,6 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
     x_train_pos_bg = np.array(x_train_pos_bg)
     y_train_bg = np.vstack(y_train_bg)
     y_binary_train_bg = np.array(y_binary_train_bg)
-    #print(x_train.shape, x_train_pos.shape, y_train.shape, y_binary_train.shape, x_train_bg.shape, x_train_pos_bg.shape, y_train_bg.shape, y_binary_train_bg.shape)
 
     bg_index = np.arange(len(x_train_bg))
     np.random.shuffle(bg_index)
@@ -328,11 +252,9 @@ def preprocess(adatasub, bin_file, tmp_dir, layer_name, prealigned, align, start
     x_train_pos = np.vstack((x_train_pos, x_train_pos_bg[bg_index[:len(x_train_pos)]]))
     y_train = np.vstack((y_train, y_train_bg[bg_index[:len(y_train)]]))
     y_binary_train = np.hstack((y_binary_train, y_binary_train_bg[bg_index[:len(y_binary_train)]]))
-    #print(x_train.shape, x_train_pos.shape, y_train.shape, y_binary_train.shape)
 
     x_test= np.array(x_test)
     x_test_pos = np.array(x_test_pos)
-    #print(x_test.shape, x_test_pos.shape)
 
     np.savez_compressed(tmp_dir+'/x_train_' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.npz', x_train=x_train)
     np.savez_compressed(tmp_dir+'/x_train_pos_' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.npz', x_train_pos=x_train_pos)

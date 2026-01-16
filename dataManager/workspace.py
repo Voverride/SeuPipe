@@ -52,6 +52,11 @@ def get_expansion_workspace()->str:
     check_path(path)
     return path
 
+def get_maskviewer_workspace()->str:
+    path = os.path.join(get_workspace(), setting.maskViewer)
+    check_path(path)
+    return path
+
 def get_cellselector_workspace()->str:
     path = os.path.join(get_workspace(), setting.cellSelector)
     check_path(path)

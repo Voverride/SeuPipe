@@ -247,5 +247,9 @@ def train(project_path, startx, starty, patchsize, epochs, val_ratio):
     transformer_layers = 8
     mlp_head_units = [1024, 256]  # Size of the dense layers of the final classifier
 
-    transformer_classifier = create_transformer_classifier(class_num, input_shape, input_position_shape, num_patches, projection_dim, num_heads, transformer_units, transformer_layers, mlp_head_units)
-    run_experiment(project_path, startx, starty, patchsize, transformer_classifier, x_train, x_train_pos, x_train_, x_train_pos_, y_train, y_train_, y_binary_train, x_test, x_test_pos, x_validation, x_validation_pos, y_validation, y_binary_validation, learning_rate, weight_decay, batch_size, num_epochs)
+    try:
+        transformer_classifier = create_transformer_classifier(class_num, input_shape, input_position_shape, num_patches, projection_dim, num_heads, transformer_units, transformer_layers, mlp_head_units)
+        run_experiment(project_path, startx, starty, patchsize, transformer_classifier, x_train, x_train_pos, x_train_, x_train_pos_, y_train, y_train_, y_binary_train, x_test, x_test_pos, x_validation, x_validation_pos, y_validation, y_binary_validation, learning_rate, weight_decay, batch_size, num_epochs)
+    finally:
+        tf.keras.backend.clear_session()
+        gc.collect()

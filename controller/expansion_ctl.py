@@ -1,7 +1,6 @@
 from controller.auth import *
 from dataManager.expansion_d import expData
 from dataManager.segmentation_d import segData
-from websocket.message import ms
 from websocket.websocket import ws
 from controller.notice import *
 import threading
@@ -12,9 +11,8 @@ def start_expansion_with_taskname(taskName):
     """
     启动胞域扩增任务
     """
-    segInfo = segData.read_taskinfo(taskName)
-    segMetadata = segInfo['metadata']
-    progress = segMetadata.get('progress', 0)
+    segInfo = segData.get_project_info(taskName)
+    progress = segInfo.get('progress', 0)
     if progress < 1:
         set_head_notice('Please wait for the segmentation task to complete !', type='warning')
     else:
@@ -59,7 +57,7 @@ def get_expandable_task_options()->list:
     """
     获取可胞域扩增任务列表
     """
-    segTasks = segData.get_exist_tasks()
+    segTasks = segData.get_exist_projects()
     expTasks = set(expData.get_exist_tasks())
     return [task for task in segTasks if task not in expTasks]
 

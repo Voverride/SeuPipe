@@ -21,9 +21,9 @@ from dash import Patch
 
 menu = [
     {'title':'RegionClip', 'icon':'fc-repair', 'page':regionclip},
-    {'title':'Segmentation', 'icon':'fc-radar-chart', 'page':segmentation},
+    {'title': setting.segmentation, 'icon':'fc-radar-chart', 'page':segmentation},
     {'title':'Expansion', 'icon':'fc-mind-map', 'page':expansion},
-    {'title':'MaskViewer', 'icon':'fc-data-sheet', 'page':maskviewer},
+    {'title': setting.maskViewer, 'icon':'fc-data-sheet', 'page':maskviewer},
     {'title':setting.cellSelector, 'icon':'fc-serial-tasks', 'page':cellselector},
     {'title':'Filtering', 'icon':'fc-multiple-inputs', 'page':filtering},
     {'title':'Annotation', 'icon':'fc-view-details', 'page':annotation},
