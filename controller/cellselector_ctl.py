@@ -154,11 +154,15 @@ def get_slice_graph(project, slice):
 
     seg_project = project.rsplit('_', 1)[0]
     fig = selData.get_stain_fig(seg_project, slice)
+    colorMap = dict()
+    all_clusters = position['cluster'].unique()
+    for i, cluster in enumerate(all_clusters):
+        colorMap[cluster] = spot_colors[i % len(spot_colors)]
     position = position[position['selected']]
     clusters = position['cluster'].unique()
     for i, cluster in enumerate(clusters):
         cluster_data = position[position['cluster'] == cluster]
-        color = spot_colors[i % len(spot_colors)]
+        color = colorMap[cluster]
         fig.add_scatter(
             x=cluster_data['x'],
             y=cluster_data['y'],

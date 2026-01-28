@@ -30,7 +30,8 @@ def get_mask_contour_figure(stain, mask, contour, title=None, showmask=False, sh
     获取stain， mask，contour， 叠加交互图
     """
     if stain.ndim == 2:
-        stain_rgb = np.stack([stain]*3, axis=-1)
+        stain_normalized = (stain / np.max(stain)) * 255
+        stain_rgb = np.stack([stain_normalized]*3, axis=-1)
     else:
         stain_rgb = stain[..., :3]
     

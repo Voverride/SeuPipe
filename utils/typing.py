@@ -10,3 +10,9 @@ class StepIcon:
     SUCCESS = 'fc-ok'
     PROCESSING = 'antd-loading'
     ERROR = 'fc-high-priority'
+
+class StepStatus:
+    WAIT = 'wait'
+    PROCESS = 'process'
+    FINISH = 'finish'
+    ERROR = 'error'

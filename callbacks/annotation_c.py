@@ -1,305 +1,210 @@
 from controller.annotation_ctl import *
 from dash import callback, Input, Output, State, no_update, Patch
-from dash.exceptions import PreventUpdate
+from websocket.message import ms
 from pages.components.fileSelecter import fileSelecter
 from controller.auth import *
 
-@callback (
-    Output('annotask-button-showBug', 'id'),
-    Input('annotask-button-showBug', 'nClicks'),
-    prevent_initial_call=True
-)
-def show_bug(nc):
-    """
-    显示注释进程运行bug
-    """
-    anntstatus = annData.get_anntstatus()
-    e = anntstatus['exception']
-    if nc and e:
-        raise e
-    return no_update
 @callback(
-    Input('annotation-button-exportData', 'nClicks')
+    Input('ann-button-exportData', 'nClicks'),
+    State('ann-select-project', 'value'),
 )
-def export_data(nc):
+def export_data(nc, project_name):
     """
     导出数据
     """
-    if nc is not None:
-        status = check_result_data()
-        if status:
-            fileSelecter.open_export_box()
-@callback(
-    Output('annotation-graph-result', 'figure', allow_duplicate=True),
-    Input('annotation-button-slicer', 'nClicks'),
-    State('annotation-slider-slicer', 'value'),
-    prevent_initial_call=True
-)
-def slice_graph(nc, values):
-    """
-    裁剪切片
-    """
-    if nc is None:
-        return no_update
-    result = annData.get_resultfig()
-    if result is None:
-        return no_update
-    min_value, max_value = values
-    fig = plot_3d_scatter(annData, min_z=min_value, max_z=max_value)
-    return fig
+    if nc:
+        if not project_name:
+            set_head_notice('Please select a project!', type='warning')
+            return
+        parameter_path = annData.get_parameter_path(project_name)
+        if not os.path.exists(parameter_path):
+            set_head_notice(f'Project {project_name} has not been annotated yet.', type='warning')
+            return
+        annData.set_export_project(project_name)
+        fileSelecter.open_export_box()
 
 @callback(
-    Output('annotation-graph-result', 'figure', allow_duplicate=True),
-    # Output('annotation-graph-refumap', 'figure', allow_duplicate=True),
-    Output('annotation-graph-queryumap', 'figure', allow_duplicate=True),
-    Input('annotation-select-spotSize', 'value'),
-    Input('annotation-select-borderWidth', 'value'),
-    Input('annotation-colorPicker-boarderColor', 'value'),
+    Output('ann-graph-result', 'figure', allow_duplicate=True),
+    Input('ann-button-slicer', 'nClicks'),
+    State('ann-select-project', 'value'),
+    State('ann-slider-slicer', 'value'),
+    State('ann-select-spotSize', 'value'),
+    State('ann-select-borderWidth', 'value'),
+    State('ann-colorPicker-boarderColor', 'value'),
     prevent_initial_call=True
 )
-def update_spot_style(spotSize, borderWidth, borderColor):
+def slicer(nc, project_name, slicer_range, spot_size, border_width, border_color):
     """
-    调整散点大小和边框
-    """
-    # 'marker': {'color': '#6495ED', 'line': {'color': '#0d0015', 'width': 1}, 'size': 5, 'symbol': 'circle'}
-    resultfig = annData.get_resultfig()
-    # refumap = annData.get_refumap()
-    queryumap = annData.get_queryumap()
-    result_patch = no_update
-    # ref_patch = no_update
-    query_patch = no_update
-    def update_patch(fig, patch, use_border=False):
-        for i in range(len(fig['data'])):
-            patch['data'][i]['marker']['size'] = spotSize
-            if use_border:
-                patch['data'][i]['marker']['line']['width'] = borderWidth
-                patch['data'][i]['marker']['line']['color'] = borderColor
-
-    if resultfig is not None:
-        result_patch = Patch()
-        update_patch(resultfig, result_patch, use_border=True)
-
-    # if refumap is not None:
-    #     ref_patch = Patch()
-    #     update_patch(refumap, ref_patch)
-
-    if queryumap is not None:
-        query_patch = Patch()
-        update_patch(queryumap, query_patch)
-    
-    return result_patch, query_patch
-
-
-@callback(
-    Output('annotation-interval', 'disabled', allow_duplicate=True),
-    Input('annotation-event-loop', 'n_intervals'),
-    State('annotation-interval', 'disabled'),
-    prevent_initial_call=True
-)
-def annotation_event_loop(_, disabled):
-    """
-    当有用户开始训练任务时，其他用户实时同步状态
-    """
-    if disabled:
-        anntstatus = annData.get_anntstatus()
-        thread = anntstatus['thread']
-        creator = anntstatus['creator']
-        if thread is None or not thread.is_alive():
-            return True
-        reset_annstatus_progress(creator)
-        return False
-    return no_update
-
-@callback(
-    Output('annotation-interval', 'disabled', allow_duplicate=True),
-    Input('annotation-interval', 'n_intervals'),
-    prevent_initial_call=True
-)
-def update_annotation_status(_):
-    """
-    轮回查询注释状态
-    """
-    anntstatus = annData.get_anntstatus()
-    thread = anntstatus['thread']
-    update_annotation_progress()
-    if thread is None or not thread.is_alive():
-        return True
-    return no_update
-
-@callback(
-    Output('annotation-interval', 'disabled'),
-    Input('anntask-button-train', 'nClicks'),
-    State('annotask-remove-mt', 'checked'),
-    State('annotask-remove-ribo', 'checked'),
-    State('annotask-remove-hb', 'checked'),
-    State('annotask-use-hvg', 'checked'),
-    State('annotask-nlayers', 'value'),
-    State('annotask-nhiddens', 'value'),
-    State('annotask-nlatent', 'value'),
-    State('annotask-epochs', 'value'),
-    State('annotask-batchsize', 'value'),
-    State('annotask-dropout', 'value'),
-    State('main-title-username', 'children'),
-    prevent_initial_call=True
-)
-def start_training(nc, rm_mt, rm_ribo, rm_hb, use_hvg, n_layers, n_hiddens, n_latent, epochs, batch_size, dropout, usrname):
-    """
-    开始训练
+    筛选切片结果
     """
     if nc:
-        access = verify_modify_permission()
-        if access:
-            run_scvi(rm_mt, rm_ribo, rm_hb, use_hvg, n_layers, n_hiddens, n_latent, epochs, batch_size, dropout, usrname)
-            return False
+        z_min = slicer_range[0]
+        z_max = slicer_range[1]
+        fig = get_slicer_result(project_name, z_min, z_max, spot_size, border_width, border_color)
+        return fig
+        
+@callback(
+    Input('ann-select-spotSize', 'value'),
+    Input('ann-select-borderWidth', 'value'),
+    Input('ann-colorPicker-boarderColor', 'value'),
+    State('ann-select-project', 'value'),
+)
+def update_spot_property(spot_size, border_width, border_color, project_name):
+    """
+    更新散点属性
+    """
+    if not project_name:
+        return
+    classes = annData.get_classes(project_name)
+    if classes is not None:
+        patch = Patch()
+        for i in range(classes):
+            patch['data'][i]['marker']['size'] = spot_size
+            patch['data'][i]['marker']['line']['width'] = border_width
+            patch['data'][i]['marker']['line']['color'] = border_color
+        set_props('ann-graph-result', dict(figure=patch))
+
+@callback(
+    Input('ann-button-showBug', 'nClicks'),
+    State('ann-select-project', 'value'),
+    prevent_initial_call=True
+)
+def show_bug(nc, project):
+    """
+    显示注释异常信息
+    """
+    if nc and project:
+        show_bug_info(project)
+
+@callback(
+    Output('ann-select-project', 'value', allow_duplicate=True),
+    Input('ann-delete-project-confirm', 'confirmCounts'),
+    State('ann-select-project', 'value'),
+    running=[
+        (Output('ann-delete-project', 'loading'), True, False),
+    ],
+    prevent_initial_call=True
+)
+def delete_project(nc, project_name):
+    """
+    删除项目
+    """
+    if nc and project_name and verify_modify_permission():
+        if annData.is_running(project_name):
+            set_head_notice(f'{project_name} is running, please wait...!', type='warning')
+            return no_update
+        annData.delete_project(project_name)
+        set_head_notice('Delete successfully!', type='success')
+        return None
     return no_update
 
-# tosica代码
-# @callback(
-#     Output('annotation-interval', 'disabled'),
-#     Input('anntask-button-train', 'nClicks'),
-#     State('annotask-remove-mt', 'checked'),
-#     State('annotask-remove-ribo', 'checked'),
-#     State('annotask-remove-hb', 'checked'),
-#     State('annotask-use-hvg', 'checked'),
-#     State('annotask-epoch', 'value'),
-#     State('annotask-depth', 'value'),
-#     State('annotask-batchsize', 'value'),
-#     State('annotask-lr', 'value'),
-#     State('annotask-gmt', 'value'),
-#     State('main-title-username', 'children'),
-#     prevent_initial_call=True
-# )
-# def start_training(nc, rm_mt, rm_ribo, rm_hb, use_hvg, epoch, depth, batchsize, lr, gmt, usrname):
-#     """
-#     开始训练
-#     """
-#     if nc:
-#         access = verify_modify_permission()
-#         if access:
-#             pass
-#             # run_tosica(rm_mt, rm_ribo, rm_hb, use_hvg, epoch, depth, batchsize, lr, gmt, usrname)
-#             return False
-#     return no_update
-
 @callback(
-    Input('init-restore-annotation', 'n_intervals'),
-)
-def update_init_component(_):
-    """
-        恢复初始数据
-    """
-    restore_initial_data()
-@callback(
-    Output('annotation-slider-slicer', 'marks'),
-    Input('annotation-slider-slicer', 'value'),
-)
-def update_slider_markers(value):
-    """
-        更新slider显示数值
-    """
-    if value:
-        return {val:val for val in value}
-    raise PreventUpdate
-@callback(
-    Output('annotask-select-z', 'value'),
-    Input('annotask-select-z', 'value'),
+    Input('refresh-ann-status', 'children'),
+    State('ann-select-project', 'value'),
     prevent_initial_call=True
 )
-def set_zfield(value):
+def refresh_annotation_status(_, project):
     """
-    设置z坐标并检查数据类型重置slicer滑动条数据
+    刷新细胞注释状态
     """
-    zfield = annData.get_zfield()
-    if zfield==value:
-        raise PreventUpdate
-    access = verify_modify_permission()
-    if value is not None and access:
-        status = check_queryfield_type(value)
-        if status:
-            annData.set_zfield(value)
-            zfield_min = annData.get_zfield_min()
-            zfield_max = annData.get_zfield_max()
-            if zfield_min is not None and zfield_max is not None:
-                props = dict()
-                props['min'] = zfield_min
-                props['max'] = zfield_max
-                props['value'] = [zfield_min, zfield_max]
-                props['tooltipPrefix'] = f'{annData.get_zfield()}: '
-                set_props('annotation-slider-slicer', props)
-            return no_update
-    return zfield
+    if project:
+        set_props('ann-select-project', dict(value=project))
 
 @callback(
-    Output('annotask-select-y', 'value'),
-    Input('annotask-select-y', 'value'),
-    prevent_initial_call=True
+    Input('ann-start-project', 'nClicks'),
+    State('ann-select-project', 'value'),
 )
-def set_yfield(value):
+def start_project(nc, projectname):
     """
-    设置y坐标并检查数据类型
-    """
-    yfield = annData.get_yfield()
-    if yfield==value:
-        raise PreventUpdate
-    access = verify_modify_permission()
-    if value is not None and access:
-        status = check_queryfield_type(value)
-        if status:
-            annData.set_yfield(value)
-            return no_update
-    return yfield
-
-@callback(
-    Output('annotask-select-x', 'value'),
-    Input('annotask-select-x', 'value'),
-    prevent_initial_call=True
-)
-def set_xfield(value):
-    """
-    设置x坐标并检查数据类型
-    """
-    xfield = annData.get_xfield()
-    if xfield==value:
-        raise PreventUpdate
-    access = verify_modify_permission()
-    if value is not None and access:
-        status = check_queryfield_type(value)
-        if status:
-            annData.set_xfield(value)
-            return no_update
-    return xfield
-
-@callback(
-    Output('annotask-select-label', 'value'),
-    Input('annotask-select-label', 'value'),
-    prevent_initial_call=True
-)
-def set_labelfield(value):
-    """
-    设置label坐标
-    """
-    labelfield = annData.get_labelfield()
-    if labelfield==value:
-        raise PreventUpdate
-    access = verify_modify_permission()
-    if value is not None and access:
-        annData.set_labelfield(value)
-        return no_update
-    return labelfield
-
-@callback(
-    Input('annotask-button-querydata', 'nClicks'),
-    prevent_initial_call=True
-)
-def upload_querydata(nc):
-    """
-    打开上传查询数据窗口
+    启动注释项目
     """
     if nc and verify_modify_permission():
-        fileSelecter.set_annotask('query')
-        fileSelecter.open_import_box()
+        if not projectname:
+            set_head_notice('Please Select Project Name', type='warning')
+            return
+        start_ann_project(projectname)
+
 @callback(
-    Input('annotask-button-refdata', 'nClicks'),
+    Input('ann-select-project', 'value'),
+    State('ann-select-spotSize', 'value'),
+    State('ann-select-borderWidth', 'value'),
+    State('ann-colorPicker-boarderColor', 'value')
+)
+def update_project_tabledata(projectname, spot_size, border_width, border_color):
+    """
+    更新项目元数据
+    """
+    ms.clinetSend(ms._updateParams_c2s, params=dict(project=projectname))
+    update_project_metadata(projectname, spot_size, border_width, border_color)
+
+@callback(
+    Input('ann-button-submit', 'nClicks'),
+    State('ann-store-refdata', 'data'),
+    State('ann-store-querydata', 'data'),
+    State('ann-select-label', 'value'),
+    State('ann-select-x', 'value'),
+    State('ann-select-y', 'value'),
+    State('ann-select-z', 'value'),
+    State('ann-remove-mt', 'checked'),
+    State('ann-remove-ribo', 'checked'),
+    State('ann-remove-hb', 'checked'),
+    State('ann-use-hvg', 'checked'),
+    State('ann-nlayers', 'value'),
+    State('ann-nhiddens', 'value'),
+    State('ann-nlatent', 'value'),
+    State('ann-epochs', 'value'),
+    State('ann-batchsize', 'value'),
+    State('ann-dropout', 'value'),
+    State('ann-projectname', 'value'),
+    running=[
+        (Output('ann-button-submit', 'loading'), True, False)
+    ],
+    prevent_initial_call=True
+)
+def submit_project(nc, refdata, querydata, label, x, y, z, rm_mt, rm_ribo, rm_hb, use_hvg, n_layers, n_hiddens, n_latent, epochs, batch_size, dropout, projectname):
+    """
+    提交创建项目
+    """
+    if nc and verify_modify_permission():
+        if not refdata:
+            set_head_notice('Please Upload Reference Data', type='warning')
+            return
+        if not querydata:
+            set_head_notice('Please Upload Query Data', type='warning')
+            return
+        if not label:
+            set_head_notice('Please Select Label', type='warning')
+            return
+        if not x:
+            set_head_notice('Please Select X', type='warning')
+            return
+        if not y:
+            set_head_notice('Please Select Y', type='warning')
+            return
+        if not z:
+            set_head_notice('Please Select Z', type='warning')
+            return
+        if not projectname:
+            set_head_notice('Please Input Project Name', type='warning')
+            return
+        create_project(refdata, querydata, label, x, y, z, rm_mt, rm_ribo, rm_hb, use_hvg, n_layers, n_hiddens, n_latent, epochs, batch_size, dropout, projectname)
+
+@callback(
+    Output('ann-select-project', 'options'),
+    Input('ann-select-project-tooltip', 'open'),
+    prevent_initial_call=True
+)
+def update_project_list(open):
+    """
+    更新项目列表
+    """
+    if open:
+        project_list = annData.get_exist_projects()
+        return project_list
+    return no_update
+
+@callback(
+    Input('ann-button-refdata', 'nClicks'),
     prevent_initial_call=True
 )
 def upload_refdata(nc):
@@ -309,16 +214,40 @@ def upload_refdata(nc):
     if nc and verify_modify_permission():
         fileSelecter.set_annotask('ref')
         fileSelecter.open_import_box()
-
+    
 @callback(
-    Output('annotask-drawer', 'visible'),
-    Input('annotation-button-newtask', 'nClicks'),
+    Input('ann-button-querydata', 'nClicks'),
     prevent_initial_call=True
 )
-def open_annotask_drawer(nc):
+def upload_querydata(nc):
     """
-    弹出新建注释任务抽屉
+    打开上传查询数据窗口
     """
-    if nc:
-        return True
-    raise PreventUpdate
+    if nc and verify_modify_permission():
+        fileSelecter.set_annotask('query')
+        fileSelecter.open_import_box()
+
+
+@callback(
+    Output('ann-projectname', 'status'),
+    Input('ann-projectname', 'value'),
+    prevent_initial_call=True
+)
+def update_projectname_status(value):
+    """
+    更新项目名称状态
+    """
+    if value is None or value == '':
+        return 'error'
+    return None
+
+@callback(
+    Input('ann-button-newproject', 'nClicks'),
+    prevent_initial_call=True
+)
+def open_create_project_modal(nc):
+    """
+    显示新建项目面板
+    """
+    if nc and verify_modify_permission():
+        open_new_project_modal()

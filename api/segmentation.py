@@ -54,6 +54,9 @@ def run_segmentation_project(observed_info):
             bin_file = slice['gem']
             set_slice_status(observed_info, slice, seg_step, Status.PROCESSING, notify=True)
             adata = st.io.read_bgi_agg(bin_file, img_file)
+            stain = adata.layers['stain']
+            stain = (stain / np.max(stain)) * 255
+            adata.layers['stain'] = stain
             adata = segment_cells_cellpose(adata, output_layer=cellpose_layer, modeltype=model, batch_size=batchsize, diameter=diameter, gpu=gpu)
             adata = segment_cells_watershed(adata, output_layer=watershed_layer)
             z = slice['z']
@@ -78,7 +81,7 @@ def run_segmentation_project(observed_info):
             watershed_mask_array = adata.layers[watershed_layer]
             cellpose_mask, cellpose_contour = generate_cell_masks_rgba(cellpose_mask_array)
             watershed_mask, watershed_contour = generate_cell_masks_rgba(watershed_mask_array)
-            stain = adata.layers['stain']
+
             stain_path = segData.get_stain_path(project, z)
             stain_fig = px.imshow(stain, color_continuous_scale='gray')
             write_pkl(stain_fig, stain_path)

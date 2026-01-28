@@ -14,7 +14,6 @@ class WebSocket:
         """
         async def startWebSocketServer():
             host, port = get_local_ip(), setting.ws_port
-            print(f"✅ Starting WebSocket server on ws://{host}:{port}")
             async with websockets.serve(self.handleConnect, host, port):
                 await asyncio.Future()
         asyncio.run(startWebSocketServer())
@@ -32,6 +31,12 @@ class WebSocket:
                 await ms.serverParse(message, websocket, self)
         finally:
             self.clients.remove(websocket)
+
+    async def notifyUpdateAnnotationStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于细胞注释任务页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateAnnotationStatus_s2c, ws=self, **kwargs)
     
     async def notifyUpdateCellSelectorStatus(self, operation, key, value, **kwargs):
         """

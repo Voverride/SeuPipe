@@ -15,6 +15,7 @@ class Message:
         self._updateCellSelectorStatus_s2c = 'update_cellselector_status_s2c'
         self._updateSegmentationStatus_s2c = 'update_segmentation_status_s2c'
         self._updateClusteringStatus_s2c = 'update_clustering_status_s2c'
+        self._updateAnnotationStatus_s2c = 'update_annotation_status_s2c'
 
         self._handlers = {
             # 建立ws连接时检查登录状态
@@ -76,6 +77,11 @@ class Message:
             self._updateClusteringStatus_s2c: {
                 'send': serverSendUpdateClusteringStatus,
                 'parse': clientParseUpdateClusteringStatus
+            },
+            # 更新细胞注释任务状态
+            self._updateAnnotationStatus_s2c: {
+                'send': serverSendUpdateAnnotationStatus,
+                'parse': clientParseUpdateAnnotationStatus
             },
         }
     

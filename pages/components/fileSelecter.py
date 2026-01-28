@@ -4,7 +4,7 @@ from dash.dependencies import Input, Output, State
 from dash import callback, set_props, no_update
 from dash.exceptions import PreventUpdate
 from dataManager.workspace import set_workpase
-from controller.auth import verify_modify_permission
+from controller.auth import verify_modify_permission, get_request_usrname
 from controller.notice import set_aside_notice
 from setting import setting
 from controller.alignment_ctl import read_alignment_file, export_alignment_file
@@ -25,7 +25,7 @@ class FileSelecter:
         self.replaceid = id+'6'
         self.cancleid = id+'7'
         self.filenameid = id+'8'
-        self.annotask = None # ref or query
+        self.annotask = dict() # {username: ref or query}
         self.box = html.Div(
             [   
                 fac.AntdModal(
@@ -102,7 +102,7 @@ class FileSelecter:
                     ),
                     id=self.boxid, 
                     title='Import Data', 
-                    width='800px',
+                    width='810px',
                     visible=False
                 )
             ],
@@ -180,13 +180,14 @@ class FileSelecter:
                         if status:
                             set_props(self.boxid, {'visible':False})
                     if page==setting.annotation:
-                        type = self.annotask
+                        type = self.get_annotask()
                         status = False
                         if type=='ref':
                             status = read_annotask_refdata(path)
                         elif type=='query':
                             status = read_annotask_querydata(path)
                         if status:
+                            self.remove_annotask()
                             set_props(self.boxid, {'visible':False})
                     if page==setting.segmentation:
                         success = read_project_metadata_file(path)
@@ -307,10 +308,17 @@ class FileSelecter:
                 return empty_fileList, columns
 
     def set_annotask(self, type:str)->None:
-        self.annotask = type
+        username = get_request_usrname()
+        self.annotask[username] = type
 
     def get_annotask(self)->str:
-        return self.annotask
+        username = get_request_usrname()
+        return self.annotask.get(username, None)
+    
+    def remove_annotask(self):
+        username = get_request_usrname()
+        if username in self.annotask:
+            del self.annotask[username]
 
     def get_boxid(self) -> str:
         return self.boxid

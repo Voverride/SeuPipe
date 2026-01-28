@@ -10,5 +10,7 @@ class Setting:
         self.filtering = 'Filtering'
         self.annotation = 'Annotation'
         self.alignment = 'Alignment'
+        self.visualization = 'Visualization'
+        self.passcode = 'Passcode'
 
 setting = Setting()

@@ -1,213 +1,290 @@
-from anndata import AnnData
-from utils.colors import get_color_map
+from dataManager.workspace import *
+from utils.commonfuc import *
+from utils.typing import StepStatus
+from controller.auth import get_request_usrname
+from websocket.websocket import ws
+from utils.observer import observer
+import cachetools
+import shutil
 
 class AnnotationData:
     def __init__(self):
-        self._refdata = None
-        self._refname = None
-        self._querydata = None
-        self._queryname = None
-        self._labelfield = None
-        self._xfield = None
-        self._yfield = None
-        self._zfield = None
-        self._resultfig = None
-        self._refumap = None
-        self._queryumap = None
-        self._heatmap = None
-        self._anntstatus = {
-            'creator':None,
-            'thread':None,
-            'rmMt':True,
-            'rmHb':True,
-            'rmRibo':True,
-            'useHvg':True,
-            'epochs':100,
-            'batch_size':128,
-            'n_layers':2,
-            'dropout':0.2,
-            'n_hiddens': 256,
-            'n_latent': 20, 
-            'exception':None,
-            'steps':{
-                1:{'running':False, 'complete':False, 'failed':False},
-                2:{'running':False, 'complete':False, 'failed':False, 'percent':0, 'epoch': '0/0'},
-                3:{'running':False, 'complete':False, 'failed':False},
+        self._annotation = {}
+        self._projects = cachetools.TTLCache(maxsize=20, ttl=1800)
+        self._export_project = cachetools.TTLCache(maxsize=200, ttl=1800)
+
+    def set_export_project(self, projectname):
+        """
+        设置用户导出项目
+        """
+        username = get_request_usrname()
+        self._export_project[username] = projectname
+
+    def get_export_project(self):
+        """
+        获取用户导出项目
+        """
+        username = get_request_usrname()
+        return self._export_project.get(username, None)
+
+    def create_annotation_task(self, projectname):
+        """
+        创建细胞注释任务
+        """
+        metadata = self.get_project_info(projectname)
+        metadata['steps'] = {
+            'preprocess': StepStatus.WAIT,
+            'training': StepStatus.WAIT,
+            'postprocess': StepStatus.WAIT,
+            'percent': 0,
+        }
+        metadata['exception'] = None
+        observed_metadata = observer.observe(metadata, ws.notifyUpdateAnnotationStatus, project=projectname)
+        self._annotation[projectname] = observed_metadata
+        return observed_metadata
+    
+    def remove_annotation_task(self, projectname):
+        """
+        移除细胞注释任务
+        """
+        if projectname in self._annotation:
+            observer.disobserve(self._annotation[projectname], ws.notifyUpdateAnnotationStatus)
+            del self._annotation[projectname]
+    
+    def is_running(self, projectname):
+        """
+        检查是否存在细胞注释任务
+        """
+        metadata = self.get_project_info(projectname)
+        return metadata.get('running', False)
+
+    def get_project_info(self, project_name: str):
+        """
+        获取细胞注释项目信息
+        """
+        project_info = dict(self._annotation.get(project_name, {}))
+        if project_info: 
+            return project_info
+        elif project_name in self._projects:
+            project_info = self._projects[project_name]
+            del self._projects[project_name]
+        else:
+            metadata_path = self.get_metadata_path(project_name)
+            project_info = read_json(metadata_path)
+        self._projects[project_name] = project_info
+        return project_info
+    
+    def update_project_info(self, project_name: str, metadata: dict):
+        """
+        更新细胞注释项目信息
+        """
+        self._annotation[project_name] = metadata
+        metadata_path = self.get_metadata_path(project_name)
+        write_json(metadata_path, metadata)
+    
+    def get_metadata_path(self, project_name: str):
+        """
+        获取细胞注释项目元数据路径
+        """
+        project_folder = self.get_project_folder(project_name)
+        metadata_path = os.path.join(project_folder, 'metadata.json')
+        return metadata_path
+    
+    def get_result_folder(self, project_name: str):
+        """
+        获取细胞注释项目结果文件夹路径
+        """
+        project_folder = self.get_project_folder(project_name)
+        result_folder = os.path.join(project_folder, 'result')
+        check_path(result_folder)
+        return result_folder
+    
+    def set_parameter(self, project_name: str, parameter: dict):
+        """
+        设置注释结果参数
+        """
+        parameter_path = self.get_parameter_path(project_name)
+        write_json(parameter_path, parameter)
+    
+    def get_parameter_path(self, project_name: str):
+        """
+        获取注释结果参数路径
+        """
+        result_folder = self.get_result_folder(project_name)
+        parameter_path = os.path.join(result_folder, 'parameter.json')
+        return parameter_path
+    
+    def get_parameter(self, project_name: str):
+        """
+        获取注释结果参数
+        """
+        parameter_path = self.get_parameter_path(project_name)
+        if not os.path.exists(parameter_path):
+            return None
+        parameter = read_json(parameter_path)
+        return parameter
+    
+    def get_classes(self, project_name: str):
+        """
+        获取注释结果类别数
+        """
+        parameter = self.get_parameter(project_name)
+        if parameter is None:
+            return None
+        classes = parameter.get('classes', None)
+        return classes
+    
+    def get_z_range(self, project_name: str):
+        """
+        获取注释结果z轴范围
+        """
+        parameter = self.get_parameter(project_name)
+        if parameter is None:
+            return None, None
+        z_min = parameter.get('z_min', None)
+        z_max = parameter.get('z_max', None)
+        return z_min, z_max
+    
+    def get_diffgene_fig_path(self, project_name: str):
+        """
+        获取细胞注释差异基因表达图路径
+        """
+        result_folder = self.get_result_folder(project_name)
+        diffgene_fig_path = os.path.join(result_folder, 'diffgene_fig.pkl')
+        return diffgene_fig_path
+    
+    def get_diffgene_fig(self, project_name: str):
+        """
+        获取细胞注释差异基因表达图
+        """
+        diffgene_fig_path = self.get_diffgene_fig_path(project_name)
+        if not os.path.exists(diffgene_fig_path):
+            return None
+        diffgene_fig = read_pkl(diffgene_fig_path)
+        return diffgene_fig
+    
+    def set_diffgene_fig(self, project_name: str, diffgene_fig):
+        """
+        设置细胞注释差异基因表达图
+        """
+        diffgene_fig_path = self.get_diffgene_fig_path(project_name)
+        write_pkl(diffgene_fig, diffgene_fig_path)
+
+    def get_annotation_fig_path(self, project_name: str):
+        """
+        获取细胞注释图路径
+        """
+        result_folder = self.get_result_folder(project_name)
+        annotation_fig_path = os.path.join(result_folder, 'annotation_fig.pkl')
+        return annotation_fig_path
+    
+    def get_annotation_fig(self, project_name: str):
+        """
+        获取细胞注释图
+        """
+        annotation_fig_path = self.get_annotation_fig_path(project_name)
+        if not os.path.exists(annotation_fig_path):
+            return None
+        annotation_fig = read_pkl(annotation_fig_path)
+        return annotation_fig
+    
+    def set_annotation_fig(self, project_name: str, annotation_fig):
+        """
+        设置细胞注释图
+        """
+        annotation_fig_path = self.get_annotation_fig_path(project_name)
+        write_pkl(annotation_fig, annotation_fig_path)
+    
+    def get_initial_folder(self, project_name: str):
+        """
+        获取细胞注释项目原始数据文件夹路径
+        """
+        project_folder = self.get_project_folder(project_name)
+        initial_folder = os.path.join(project_folder, 'initial')
+        check_path(initial_folder)
+        return initial_folder
+    
+    def get_refdata_path(self, project_name: str):
+        """
+        获取细胞注释项目参考数据路径
+        """
+        initial_folder = self.get_initial_folder(project_name)
+        refdata_path = os.path.join(initial_folder, 'ref.h5ad')
+        return refdata_path
+    
+    def get_querydata_path(self, project_name: str):
+        """
+        获取细胞注释项目查询数据路径
+        """
+        initial_folder = self.get_initial_folder(project_name)
+        querydata_path = os.path.join(initial_folder, 'query.h5ad')
+        return querydata_path
+
+    def create_project(self, refdata, querydata, label, x, y, z, rm_mt, rm_ribo, rm_hb, use_hvg, n_layers, n_hiddens, n_latent, epochs, batch_size, dropout, projectname):
+        """
+        创建细胞注释项目
+        """
+        project_folder = self.get_project_folder(projectname)
+        check_path(project_folder)
+        refdata_path = self.get_refdata_path(projectname)
+        querydata_path = self.get_querydata_path(projectname)
+        shutil.copy(refdata, refdata_path)
+        shutil.copy(querydata, querydata_path)
+        metadata = {
+            'creator': get_request_usrname(),
+            'project_name': projectname,
+            'date': get_current_date(),
+            'exception': None,
+            'refdata': refdata,
+            'querydata': querydata,
+            'label': label,
+            'x': x,
+            'y': y,
+            'z': z,
+            'rm_mt': rm_mt,
+            'rm_ribo': rm_ribo,
+            'rm_hb': rm_hb,
+            'use_hvg': use_hvg,
+            'n_layers': n_layers,
+            'n_hiddens': n_hiddens,
+            'n_latent': n_latent,
+            'epochs': epochs,
+            'batch_size': batch_size,
+            'dropout': dropout,
+            'steps': {
+                'preprocess': StepStatus.WAIT,
+                'training': StepStatus.WAIT,
+                'postprocess': StepStatus.WAIT,
+                'percent': 0,
             }
         }
-    def set_annstatus_props(self, creator:str, thread, rmMt:bool, rmHb:bool, rmRibo:bool, useHvg:bool, epochs:int, batch_size:int, n_layers:int, dropout:float, n_hiddens:int, n_latent:int)->None:
-        self._anntstatus['creator'] = creator
-        self._anntstatus['thread'] = thread
-        self._anntstatus['rmMt'] = rmMt
-        self._anntstatus['rmHb'] = rmHb
-        self._anntstatus['rmRibo'] = rmRibo
-        self._anntstatus['useHvg'] = useHvg
-        self._anntstatus['epochs'] = epochs
-        self._anntstatus['batch_size'] = batch_size
-        self._anntstatus['n_layers'] = n_layers
-        self._anntstatus['dropout'] = dropout
-        self._anntstatus['n_hiddens'] = n_hiddens
-        self._anntstatus['n_latent'] = n_latent
-    def get_anntstatus(self)->dict:
-        return self._anntstatus
-
-    def set_refumap(self, fig):
-        self._refumap = fig
-
-    def get_refumap(self):
-        return self._refumap
+        metadata_path = self.get_metadata_path(projectname)
+        write_json(metadata_path, metadata)
     
-    def get_queryumap(self):
-        return self._queryumap
-    
-    def set_heatmap(self, fig):
-        self._heatmap = fig
-    def get_heatmap(self):
-        return self._heatmap
-    def set_queryumap(self, fig):
-        self._queryumap = fig
-    def set_resultfig(self, fig)->None:
-        self._resultfig = fig
-    def get_resultfig(self):
-        return self._resultfig
-    def reset_anntstatus(self)->None:
-        self._anntstatus = {
-            'creator':None,
-            'thread':None,
-            'rmMt':True,
-            'rmHb':True,
-            'rmRibo':True,
-            'useHvg':True,
-            'epochs':100,
-            'batch_size':128,
-            'n_layers':2,
-            'dropout':0.2,
-            'n_hiddens': 256,
-            'n_latent': 20, 
-            'exception':None,
-            'steps':{
-                1:{'running':False, 'complete':False, 'failed':False},
-                2:{'running':False, 'complete':False, 'failed':False, 'percent':0, 'epoch': '0/0'},
-                3:{'running':False, 'complete':False, 'failed':False},
-            }
-        }
-
-    def get_cmap(self)->dict:
-        ref = self.get_refdata()
-        label_field = self.get_labelfield()
-        if label_field is None:
-            return None
-        fields = set(ref.obs[label_field].unique())
-        return get_color_map(fields, type='COLORS_60')
-
-    def get_zfield_min(self)->float:
+    def get_project_folder(self, project_name: str):
         """
-            Retrieves the minimum value of the z-field in the AnnData object.
-
-            Returns:
-                float: Minimum value of the z-field, or None if the AnnData or z-field is not set.
+        获取注释选项目路径
         """
-        if self._querydata is None or self._zfield is None:
-            return None
-        col = self._querydata.obs[self._zfield]
-        return col.min()
-    def get_zfield_max(self)->float:
+        ann_path = get_annotation_workspace()
+        project_path = os.path.join(ann_path, project_name)
+        return project_path
+    
+    def delete_project(self, project: str):
         """
-            Retrieves the maximum value of the z-field in the AnnData object.
-
-            Returns:
-                float: Maximum value of the z-field, or None if the AnnData or z-field is not set.
+        删除注释选项目
         """
-        if self._querydata is None or self._zfield is None:
-            return None
-        col = self._querydata.obs[self._zfield]
-        return col.max()
-    def reset_allprops(self)->None:
+        project_folder = self.get_project_folder(project)
+        if os.path.exists(project_folder):
+            shutil.rmtree(project_folder)
+
+    def get_exist_projects(self):
         """
-            Resets all internal properties of the object to their default values.
+        获取注释选项目列表
         """
-        self.reset_refprops()
-        self.reset_queryprops()
-    def reset_refprops(self)->None:
-        self._refdata = None
-        self._refname = None
-        self._labelfield = None
-    def reset_queryprops(self)->None:
-        self._querydata = None
-        self._queryname = None
-        self._xfield = None
-        self._yfield = None
-        self._zfield = None
-    def set_labelfield(self, field:str)->None:
-        self._labelfield = field
-    
-    def get_project_name(self)->str:
-        refname = self.get_refname()
-        queryname = self.get_queryname()
-        if refname and queryname:
-            return refname+'_to_'+queryname
-        return None
-
-    def set_xfield(self, field:str)->None:
-        self._xfield = field
-
-    def set_yfield(self, field:str)->None:
-        self._yfield = field
-
-    def set_zfield(self, field:str)->None:
-        self._zfield = field
-
-    def get_labelfield(self)->str:
-        return self._labelfield
-    
-    def get_xfield(self)->str:
-        return self._xfield
-    
-    def set_refname(self, name)->None:
-        self._refname = name
-    
-    def set_queryname(self, name)->None:
-        self._queryname = name
-
-    def get_refname(self)->str:
-        return self._refname
-    
-    def get_queryname(self)->str:
-        return self._queryname
-
-    def get_yfield(self)->str:
-        return self._yfield
-
-    def get_zfield(self)->str:
-        return self._zfield
-    def set_refdata(self, adata:AnnData)->None:
-        self._refdata = adata
-    
-    def get_refdata(self)->AnnData:
-        return self._refdata
-    
-    def set_querydata(self, adata:AnnData)->None:
-        self._querydata = adata
-
-    def get_querydata(self)->AnnData:
-        return self._querydata
-    
-    def get_refdata_fields(self)->list:
-        ad = self.get_refdata()
-        if ad is None:
-            return []
-        obs_fields = ad.obs.columns.tolist()
-        obs_fields.sort()
-        return obs_fields
-    
-    def get_querydata_fields(self)->list:
-        ad = self.get_querydata()
-        if ad is None:
-            return []
-        obs_fields = ad.obs.columns.tolist()
-        obs_fields.sort()
-        return obs_fields
-
-    
+        ann_path = get_annotation_workspace()
+        projects = os.listdir(ann_path)
+        projects = [p for p in projects if os.path.isdir(os.path.join(ann_path, p))]
+        projects.sort()
+        return projects
 
 annData = AnnotationData()

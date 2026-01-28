@@ -20,18 +20,18 @@ from dash import Patch
 
 
 menu = [
-    {'title':'RegionClip', 'icon':'fc-repair', 'page':regionclip},
+    {'title':setting.regionClip, 'icon':'fc-repair', 'page':regionclip},
     {'title': setting.segmentation, 'icon':'fc-radar-chart', 'page':segmentation},
-    {'title':'Expansion', 'icon':'fc-mind-map', 'page':expansion},
+    {'title':setting.expansion, 'icon':'fc-mind-map', 'page':expansion},
     {'title': setting.maskViewer, 'icon':'fc-data-sheet', 'page':maskviewer},
     {'title':setting.cellSelector, 'icon':'fc-serial-tasks', 'page':cellselector},
-    {'title':'Filtering', 'icon':'fc-multiple-inputs', 'page':filtering},
-    {'title':'Annotation', 'icon':'fc-view-details', 'page':annotation},
-    {'title':'Alignment', 'icon':'fc-workflow', 'page':alignment},
-    {'title':'Visualization', 'icon':'fc-scatter-chart', 'page':visualization}
+    {'title':setting.filtering, 'icon':'fc-multiple-inputs', 'page':filtering},
+    {'title':setting.annotation, 'icon':'fc-view-details', 'page':annotation},
+    {'title':setting.alignment, 'icon':'fc-workflow', 'page':alignment},
+    {'title':setting.visualization, 'icon':'fc-scatter-chart', 'page':visualization}
 ]
 
-menu.append({'title':'Passcode', 'icon':'fc-tree-structure', 'page':passcode})
+menu.append({'title':setting.passcode, 'icon':'fc-tree-structure', 'page':passcode})
 
 @callback(
     Output('main-menu-item', 'menuItems'),
