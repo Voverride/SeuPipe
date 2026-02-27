@@ -6,10 +6,13 @@ import pages.cellselector_p as cellselector
 import pages.segmentation_p as segmentation
 import pages.expansion_p as expansion
 import pages.maskviewer_p as maskviewer
-import pages.filtering_p as filtering
 import pages.annotation_p as annotation
 import pages.alignment_p as alignment
 import pages.visiualization_p as visualization
+import pages.lassion_p as lassion
+
+# import pages.filtering_p as filtering
+
 # 注意 fileSelecter 模块的注释要改过来
 from pages.components.fileSelecter import fileSelecter
 import pages.passcode_p as passcode
@@ -25,10 +28,11 @@ menu = [
     {'title':setting.expansion, 'icon':'fc-mind-map', 'page':expansion},
     {'title': setting.maskViewer, 'icon':'fc-data-sheet', 'page':maskviewer},
     {'title':setting.cellSelector, 'icon':'fc-serial-tasks', 'page':cellselector},
-    {'title':setting.filtering, 'icon':'fc-multiple-inputs', 'page':filtering},
+    # {'title':setting.filtering, 'icon':'fc-multiple-inputs', 'page':filtering},
     {'title':setting.annotation, 'icon':'fc-view-details', 'page':annotation},
     {'title':setting.alignment, 'icon':'fc-workflow', 'page':alignment},
-    {'title':setting.visualization, 'icon':'fc-scatter-chart', 'page':visualization}
+    {'title':setting.visualization, 'icon':'fc-scatter-chart', 'page':visualization},
+    {'title':setting.lassion, 'icon':'fc-briefcase', 'page':lassion},
 ]
 
 menu.append({'title':setting.passcode, 'icon':'fc-tree-structure', 'page':passcode})

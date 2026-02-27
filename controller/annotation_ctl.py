@@ -121,8 +121,7 @@ def update_project_metadata(projectname, spot_size, border_width, border_color):
     set_props('ann-content-tabs', dict(activeKey=activeKey))
     set_props('ann-graph-heatmap', dict(figure=heatmapFig))
     set_props('ann-graph-result', dict(figure=resultFig))
-    set_props('ann-annotation-steps', dict(percent=percent))
-    set_props('ann-annotation-steps', dict(steps=patch))
+    set_props('ann-annotation-steps', dict(steps=patch, percent=percent))
     set_props('ann-table-metadata', dict(data=table_metadata))
     set_props('ann-table-refquery', dict(data=table_metadata))
 

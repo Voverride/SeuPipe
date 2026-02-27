@@ -63,6 +63,14 @@ def scvi_annotation(observed_metadata):
         classes = len(set(querydata.obs[label_field].unique()))
         z_min = querydata.obs[z].min()
         z_max = querydata.obs[z].max()
+        if isinstance(z_min, (np.int64, np.int32, np.int16, np.int8)):
+            z_min = int(z_min)
+        else:
+            z_min = float(z_min)
+        if isinstance(z_max, (np.int64, np.int32, np.int16, np.int8)):
+            z_max = int(z_max)
+        else:
+            z_max = float(z_max)
         annData.set_parameter(project_name, dict(classes=classes, z_min=z_min, z_max=z_max))
         heatmap_fig = get_diffgene_heatmap(querydata, label_field)
         result_fig = plot_3d_scatter(querydata, x, y, z, label_field)
@@ -88,13 +96,28 @@ def scvi_preprocessing(adata_ref, adata_query, rm_mt, rm_ribo, rm_hb, use_hvg):
     """
     cache_raw(adata_ref)
     cache_raw(adata_query)
+    adata_ref_tmp = sc.AnnData(
+        X=adata_ref.X.copy(),
+        obs=adata_ref.obs.copy(),
+        var=adata_ref.var.copy(),
+        layers=adata_ref.layers.copy()
+    )
+    adata_query_tmp = sc.AnnData(
+        X=adata_query.X.copy(),
+        obs=adata_query.obs.copy(),
+        var=adata_query.var.copy(),
+        layers=adata_query.layers.copy()
+    )
+    adata_ref = adata_ref_tmp
+    adata_query = adata_query_tmp
     common_genes = adata_ref.var_names.intersection(adata_query.var_names)
-    adata_ref = adata_ref[:, common_genes]
-    adata_query = adata_query[:, common_genes]
+    adata_ref = adata_ref[:, common_genes].copy()
+    adata_query = adata_query[:, common_genes].copy()
     adata_ref = filter_genes(adata_ref, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
     adata_query = filter_genes(adata_query, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
     adata_ref.obs[BATCH_KEY] = "ref"
     adata_query.obs[BATCH_KEY] = "query"
+
     adata_combined = anndata.concat(
         [adata_ref, adata_query],
         axis=0,                  

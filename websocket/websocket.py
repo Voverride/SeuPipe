@@ -32,6 +32,12 @@ class WebSocket:
         finally:
             self.clients.remove(websocket)
 
+    async def notifyUpdateAlignmentStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于对齐任务页面的用户更新状态
+        """
+        await ms.serverSend(ms._updateAlignmentStatus_s2c, ws=self, **kwargs)
+
     async def notifyUpdateAnnotationStatus(self, operation, key, value, **kwargs):
         """
         通知处于细胞注释任务页面的用户更新状态

@@ -2,6 +2,29 @@ from controller.auth import *
 from setting import setting
 import json
 
+async def serverSendUpdateAlignmentStatus(key, websocket, ws, ms, **kwargs):
+    """
+    服务端发送更新对齐任务状态信息
+    """
+    project = kwargs.get('project', None)
+    data = dict(
+        key=key,
+        update=True,
+    )
+    for connected in ws.clients:
+        if connected.curMenuItem==setting.alignment:
+            ws_project = connected.params.get('project', None)
+            if project==ws_project:
+                await connected.send(json.dumps(data))
+
+def clientParseUpdateAlignmentStatus(message, websocket, ws, ms, **kwargs):
+    """
+    客户端解析更新对齐任务状态信息
+    """
+    update = message.get('update', False)
+    if update:
+        set_props('refresh-ali-status', dict(children=None))
+
 async def serverSendUpdateAnnotationStatus(key, websocket, ws, ms, **kwargs):
     """
     服务端发送更新细胞注释任务状态信息

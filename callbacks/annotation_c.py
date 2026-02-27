@@ -101,14 +101,17 @@ def delete_project(nc, project_name):
 @callback(
     Input('refresh-ann-status', 'children'),
     State('ann-select-project', 'value'),
+    State('ann-select-spotSize', 'value'),
+    State('ann-select-borderWidth', 'value'),
+    State('ann-colorPicker-boarderColor', 'value'),
     prevent_initial_call=True
 )
-def refresh_annotation_status(_, project):
+def refresh_annotation_status(_, project, spot_size, border_width, border_color):
     """
     刷新细胞注释状态
     """
     if project:
-        set_props('ann-select-project', dict(value=project))
+        update_project_metadata(project, spot_size, border_width, border_color)
 
 @callback(
     Input('ann-start-project', 'nClicks'),

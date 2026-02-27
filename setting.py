@@ -12,5 +12,6 @@ class Setting:
         self.alignment = 'Alignment'
         self.visualization = 'Visualization'
         self.passcode = 'Passcode'
+        self.lassion = 'Lasso'
 
 setting = Setting()

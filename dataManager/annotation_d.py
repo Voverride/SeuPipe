@@ -78,7 +78,6 @@ class AnnotationData:
         """
         更新细胞注释项目信息
         """
-        self._annotation[project_name] = metadata
         metadata_path = self.get_metadata_path(project_name)
         write_json(metadata_path, metadata)
     
@@ -273,6 +272,8 @@ class AnnotationData:
         """
         删除注释选项目
         """
+        if project in self._projects:
+            del self._projects[project]
         project_folder = self.get_project_folder(project)
         if os.path.exists(project_folder):
             shutil.rmtree(project_folder)

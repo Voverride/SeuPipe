@@ -1,6 +1,5 @@
 from tinydb import TinyDB
 from tinydb import Query
-from .alignment_d import alidata
 import getpass
 import os
 
@@ -80,13 +79,7 @@ def remove_user_with_ids(ids:list)->None:
     Args:
         ids (list): A list of IDs corresponding to the users to be removed.
     """
-    users = []
-    for id in ids:
-        users.append(get_user_with_id(id))
     table.remove(doc_ids=ids)
-    for user in users:
-        usrname = user['usrname']
-        alidata.delete_user_data(usrname)
     userCache.clear()
 
 def update_user_with_ids(ids:list, new_name:str=None, new_type:str=None, new_host:str=None, disabled:bool=None)->None:

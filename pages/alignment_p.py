@@ -1,81 +1,147 @@
 from callbacks.alignment_c import *
 from dash import html
-from .components.graphSetting import GraphSettingDrawer
+from .components.manualAdjust import ManualAdjustDrawer
 import feffery_antd_components as fac
 from dash import dcc
+
+new_project_modal = fac.AntdModal(
+    fac.AntdSpace(
+        [
+            fac.AntdDivider(),
+            fac.AntdSpace(
+                [
+                    fac.AntdButton(
+                        'Import Data', 
+                        id='ali-button-importdata',
+                        type='primary', 
+                        icon=fac.AntdIcon(icon='antd-cloud-download'), 
+                        style={'backgroundColor':'#5383c3', 'width':'130px'}
+                    ),
+                    dcc.Store(id='ali-store-importdata', data=None),
+                    fac.AntdTooltip(
+                        fac.AntdSelect(
+                            placeholder='x field',
+                            optionFilterMode='case-insensitive',
+                            allowClear=False,
+                            options=[],
+                            style={'width':'100px'},
+                            id='ali-select-x',
+                            locale='en-us',
+                        ),
+                        title=fac.AntdText('select x field'), color='white'
+                    ),
+                    fac.AntdTooltip(
+                        fac.AntdSelect(
+                            placeholder='y field',
+                            optionFilterMode='case-insensitive',
+                            allowClear=False,
+                            options=[],
+                            style={'width':'100px'},
+                            id='ali-select-y',
+                            locale='en-us',
+                        ),
+                        title=fac.AntdText('select y field'), color='white'
+                    ),
+                    fac.AntdTooltip(
+                        fac.AntdSelect(
+                            placeholder='z field',
+                            optionFilterMode='case-insensitive',
+                            allowClear=False,
+                            options=[],
+                            style={'width':'100px'},
+                            id='ali-select-z',
+                            locale='en-us',
+                        ),
+                        title=fac.AntdText('select z field'), color='white'
+                    )
+                ],
+                size='middle'
+            ),
+            fac.AntdDivider(),
+            fac.AntdSpace(
+                [
+                    fac.AntdInput(
+                        placeholder='input project name',
+                        id='ali-projectname',
+                        autoComplete="off",
+                        status='error',
+                        style={'width':'330px'}
+                    ),
+                    fac.AntdButton(
+                        'Submit', 
+                        id='ali-button-submit',
+                        type='primary', 
+                        icon=fac.AntdIcon(icon='md-launch'), 
+                        style={'backgroundColor': '#d0826c', 'width': '130px'}
+                    ),
+                ],
+                size='middle',
+                style={'marginBottom':'15px'}
+            ),
+        ],
+        size='middle',
+        direction='vertical',
+        style={'width':'100%'},
+    ),
+    id='ali-modal-newproject', 
+    title='Create New Project',
+    mask=False,
+    width=530,
+    maskClosable=False,
+    visible=False
+)
 
 control_panel = html.Div(
     fac.AntdCard(
         fac.AntdSpace(
             [
-                dcc.Interval(id="init-restore-alignment", interval=1, max_intervals=1),
-                dcc.Interval(interval=1000, disabled=True, id='alignment-interval'),
-                dcc.Interval(id="alignment-event-loop", interval=1000),
                 fac.AntdButton(
-                    'Import Data', 
+                    'Create New Project', 
                     type='primary',
-                    id='alignment-button-importData',
-                    icon=fac.AntdIcon(icon='antd-cloud-download'),
+                    id='ali-button-newproject',
+                    icon=fac.AntdIcon(icon='antd-plus'),
                     style={'backgroundColor':'#698aab', 'width': '100%'}
                 ),
                 fac.AntdDivider(),
-                fac.AntdTooltip(
-                    fac.AntdSelect(
-                        placeholder='select x field',
-                        optionFilterMode='case-insensitive',
-                        allowClear=False,
-                        options=[],
-                        id='alignment-select-x',
-                        locale='en-us',
-                        style={'width': '100%'},
-                    ),
-                    title=fac.AntdText('select x field'), color='white'
-                ),
-                fac.AntdTooltip(
-                    fac.AntdSelect(
-                        placeholder='select y field',
-                        optionFilterMode='case-insensitive',
-                        allowClear=False,
-                        options=[],
-                        id='alignment-select-y',
-                        locale='en-us',
-                        style={'width': '100%'},
-                    ),
-                    title=fac.AntdText('select y field'), color='white'
-                ),
-                fac.AntdTooltip(
-                    fac.AntdSelect(
-                        placeholder='select z field',
-                        optionFilterMode='case-insensitive',
-                        allowClear=False,
-                        options=[],
-                        id='alignment-select-z',
-                        locale='en-us',
-                        style={'width': '100%'},
-                    ),
-                    title=fac.AntdText('select z field'), color='white'
-                ),
-                fac.AntdButton(
-                    'Plot Figure', 
-                    type='primary',
-                    id='alignment-button-plotFig',
-                    block=True,
-                    icon=fac.AntdIcon(icon='antd-bar-chart'),
-                    style={'backgroundColor':'#867ba9'}
+                fac.AntdText('Select Project', id='ali-text-project'),
+                fac.AntdSpace(
+                    [
+                        fac.AntdTooltip(
+                            fac.AntdSelect(
+                                id='ali-select-project',
+                                placeholder='Select Project',
+                                debounceWait=300,
+                                locale='en-us',
+                                allowClear=False,
+                                style={'width':'160px'}
+                            ),
+                            id='ali-select-project-tooltip',
+                            open=False,
+                            title=fac.AntdText('Select Project'), 
+                            color='white'
+                        ),
+                        fac.AntdTooltip(
+                            fac.AntdButton(
+                                id='ali-button-add-contrast',
+                                size='small',
+                                icon=fac.AntdIcon(id='ali-icon-add-contrast', icon='antd-plus', style={'color': "#BDBDBD"}),
+                                style={'width':'30px', 'height':'30px'}
+                            ),
+                            title=fac.AntdText('Add Contrast Figure', id='ali-text-add-contrast'), 
+                            color='white'
+                        )
+                    ]
                 ),
                 fac.AntdDivider(),
-                fac.AntdTooltip(
-                    fac.AntdSelect(
-                        placeholder='select model',
-                        optionFilterMode='case-insensitive',
-                        allowClear=False,
-                        value='paste1',
-                        options=['paste1', 'paste2'],
-                        id='alignment-select-model',
-                        locale='en-us',
-                        style={'width': '100%'},
-                    ),
-                    title=fac.AntdText('select model'), color='white'
+                fac.AntdText('Select Model', id='ali-text-model'),
+                fac.AntdSelect(
+                    optionFilterMode='case-insensitive',
+                    allowClear=False,
+                    value='paste1',
+                    options=['paste1', 'paste2'],
+                    id='ali-select-model',
+                    locale='en-us',
+                    style={'width': '100%', 'marginBottom':'15px'},
                 ),
                 fac.AntdCenter(
                     fac.AntdRadioGroup(
@@ -91,177 +157,163 @@ control_panel = html.Div(
                         ],
                         defaultValue='CPU',
                         block=True,
-                        id='alignment-radio-device',
+                        id='ali-radio-device',
                         style={'width': '100%'},
                     ),
                 ),
-                fac.AntdSpace(
-                    [
-                        fac.AntdButton(
-                            'Align Slices', 
-                            type='primary',
-                            id='alignment-button-alignSlices',
-                            icon=fac.AntdIcon(icon='pi-stack'),
-                            style={'backgroundColor':'#5F9EA0', 'width':'160px'}
-                        ),
-                        fac.AntdTooltip(
-                            fac.AntdButton(
-                                type='primary',
-                                id='alignment-button-showProgress',
-                                icon=fac.AntdIcon(icon='antd-monitor'),
-                                style={'backgroundColor':'#5F9EA0'}
-                            ),
-                            title=fac.AntdText('show alignment progress'), color='white'
-                        ),
-                    ]
-                ),
+                fac.AntdDivider(),
                 fac.AntdButton(
-                    'Graph Setting', 
+                    'Manual Adjust', 
                     type='primary',
-                    id='alignment-button-graphSetting',
+                    id='ali-button-manualAdjust',
                     block=True,
-                    icon=fac.AntdIcon(icon='antd-setting'),
+                    icon=fac.AntdIcon(icon='bi-layer'),
                     style={'backgroundColor':'#a58f86'}
                 ),
                 fac.AntdDivider(),
                 fac.AntdButton(
                     'Export Data', 
                     type='primary',
-                    id='alignment-button-exportData',
+                    id='ali-button-exportData',
                     block=True,
                     icon=fac.AntdIcon(icon='antd-save'),
                     style={'backgroundColor':'#ca8269'}
                 )
             ],
-            size='middle',
             direction='vertical',
             style={'width':'100%'},
         ),
         styles={'header': {'display': 'none'}},
         style={'height':'93vh', 'maxHeight': '93vh','overflowY': 'auto'},
     ), 
-    id='alignment-control_panel',
+    id='ali-control_panel',
 )
 
-content_panel = html.Div(
-    [
-        GraphSettingDrawer,
-        fac.AntdPopupCard(
-            [
-                fac.AntdSpace(
-                    [
-                        fac.AntdTimeline(
-                            items=[
-                                {
-                                    'content': html.Div(
-                                        [
-                                            html.Div(
-                                                [
-                                                    fac.AntdText('Creator:', strong=True, style={'marginRight':'6px'}),
-                                                    fac.AntdText(type='success', id='alignment-timeline-creator'),  
-                                                ],
-                                                style={'marginRight':'20px'}
-                                            ),
-                                            fac.AntdButton(
-                                                'Show Bug',
-                                                id='alignment-button-showBug',
-                                                size='small', 
-                                                type='primary', 
-                                                icon=fac.AntdIcon(icon='antd-bug'), 
-                                                style={'backgroundColor':'#bb5548', 'display':'none'}
-                                            )           
-                                        ],
-                                        style={'width':'100%', 'display': 'flex'}
+content_tabs = fac.AntdTabs(
+    items=[
+        {
+            'key': 'ProjectInfo',
+            'label': 'ProjectInfo',
+            'children': fac.AntdSpace(
+                [
+                    dcc.Store(id='ali-store-figureScale', data={}),
+                    fac.AntdSpace(
+                        [
+                            fac.AntdButton(
+                                'Start Project', 
+                                type='primary',
+                                id='ali-start-project',
+                                icon=fac.AntdIcon(icon='antd-carry-out'),
+                                style={'backgroundColor':'#7d8a70'}
+                            ),
+                            fac.AntdPopconfirm(
+                                fac.AntdButton(
+                                    'Delete Project', 
+                                    id='ali-delete-project',
+                                    type='primary',
+                                    icon=fac.AntdIcon(icon='antd-delete'),
+                                    style={'backgroundColor':'#ca8269'}
+                                ),
+                                id='ali-delete-project-confirm',
+                                locale='en-us',
+                                arrow='hide',
+                                okText='yes',
+                                placement='bottomLeft',
+                                title='Confirm Delete?'
+                            ),
+                            fac.AntdSpace(
+                                [
+                                    fac.AntdButton(
+                                        'Show Bug',
+                                        id='ali-button-showBug',
+                                        type='primary', 
+                                        icon=fac.AntdIcon(icon='antd-bug'), 
+                                        style={'backgroundColor':'#a87a76', 'display':'block'}
                                     ),
-                                    'icon':fac.AntdAvatar(size='small'),
+                                    fac.AntdText("🚨 Error occurred during execution. Click Show Bug for details !", style={'color':'#a87a76'}, strong=True)
+                                ],
+                                id='ali-bug-panel',
+                                size='middle',
+                                style={'display':'none'}
+                            ),
+                            html.Div(children=None, id='refresh-ali-status', style={'display':'none'}),
+                        ],
+                        size='middle',
+                        style={'width':'100%'},
+                    ),
+                    fac.AntdCard(
+                        fac.AntdSteps(
+                            id='ali-alignment-steps',
+                            steps=[
+                                {
+                                    'title': 'Preprocess',
+                                    'status': 'wait',
                                 },
                                 {
-                                    'content': 'Data Validation',
-                                    'color':'gray',
-                                    'icon': fac.AntdIcon(icon='md-schedule', id='step1')
+                                    'title': 'Alignment',
+                                    'status': 'wait',
                                 },
                                 {
-                                    'content': 'Data Preparation',
-                                    'color':'gray',
-                                    'icon': fac.AntdIcon(icon='md-schedule', id='step2')
-                                },
-                                {
-                                    'content': fac.AntdSpace(
-                                        [
-                                            'Slice Alignment',
-                                            fac.AntdProgress(percent=0, id='alignment-alipercent', style={'width': '200px'}),
-                                        ],
-                                        size='middle'
-                                    ),
-                                    'color':'gray',
-                                    'icon': fac.AntdIcon(icon='md-schedule', id='step3')
-                                },
-                                {
-                                    'content': 'Stack Slices',
-                                    'color':'gray',
-                                    'icon': fac.AntdIcon(icon='md-schedule', id='step4')
-                                },
-                                {
-                                    'content': 'Update Data',
-                                    'color':'gray',
-                                    'icon': fac.AntdIcon(icon='md-schedule', id='step5')
+                                    'title': 'Postprocess',
+                                    'status': 'wait',
                                 }
-                            ],
-                            id = 'alignment-timeline-alistatus'
-                        )
-                    ],
-                    direction='vertical',
-                    size='middle',
-                    style={'width': '100%', 'marginTop':'30px'},
-                ),
-                fac.AntdParagraph(
-                    [
-                        fac.AntdIcon(icon='antd-notification-two-tone'),
-                        ' The aligned coordinates (x and y) are stored in ',
-                         fac.AntdText('adata.obs', code=True, type='success'), 'under the columns ',
-                         fac.AntdText('x_aligned', code=True, type='success'), ' and ', fac.AntdText('y_aligned', code=True, type='success'), 
-                         '. The final spatially registered coordinates are saved in ',
-                         fac.AntdText("adata.obsm['X_spatial_registered']", code=True, type='success')
-                    ],
-                    id='alignment-paragraph-fieldnotice',
-                    style={'marginTop':'-20px', 'display':'none'}
-                )
-            ],
-            id='alignment-popupcard-alignTask',
-            title='Alignment Progress',
-            width='500px',
-            closable=True,
-            destroyOnClose=False,
-            draggable=True,
-            visible=False,
-        ),
-        fac.AntdCenter(
-            fac.AntdSplitter(
+                            ]
+                        ),
+                        title='Alignment Steps',
+                    ),
+                    fac.AntdTable(
+                        columns=[
+                            {'title': 'creator', 'dataIndex': 'creator', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
+                            {'title': 'date', 'dataIndex': 'date', 'width':'15%', 'renderOptions': {'renderType': 'ellipsis'}},
+                            {'title': 'initialData', 'dataIndex': 'initialData', 'width':'45%', 'renderOptions': {'renderType': 'ellipsis'}},
+                            {'title': 'xField', 'dataIndex': 'x', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
+                            {'title': 'yField', 'dataIndex': 'y', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
+                            {'title': 'zField', 'dataIndex': 'z', 'width':'10%', 'renderOptions': {'renderType': 'ellipsis'}},
+                        ],
+                        data=[{}],
+                        style={'width': '100%', 'display':'inline-block'},
+                        id='ali-table-metadata',
+                        locale='en-us',
+                        bordered=True,
+                        pagination=False,
+                    )
+                ],
+                direction='vertical',
+                size='large',
+                style={'height': 'calc(93vh - 75px)', 'width':'100%', 'overflowY': 'auto'},
+            ),
+        },
+        {
+            'key': 'Figure',
+            'label': 'Figure',
+            'children': fac.AntdSplitter(
                 items=[
                     {
                         'children': fac.AntdCenter(
                             dcc.Graph(
-                                id="alignment-graph-aligned", 
                                 config={'displaylogo':False}, 
-                                style={'display':'block', 'height':'90vh', 'width':'100%', 'visibility':'hidden'}
+                                id='ali-graph-left', 
+                                style={'height': '100%', 'width': '100%'},
                             ),
+                            style={'height': '100%', 'width': '100%'}
                         ),
                         'collapsible': True,
-                    },
-                    {
-                        'children': fac.AntdCenter(
-                            dcc.Graph(
-                                id="alignment-graph-origion", 
-                                config={'displaylogo':False}, 
-                                style={'display':'block', 'height':'90vh', 'width':'100%', 'visibility':'hidden'}
-                            ),
-                        ),
-                        'collapsible': True,
-                    }    
+                    }
                 ],
-            ),
-        )
+                id='ali-splitter-figure',
+                style={'height': 'calc(93vh - 65px)', 'width':'100%', 'overflow': 'auto'}
+            )
+        }
     ],
-    id='alignment-content_panel',
-    style={'width':'calc(100vw - 480px)', 'height':'100%'},
+    id='ali-content-tabs'
+)
+
+content_panel = html.Div(
+    [
+        new_project_modal,
+        ManualAdjustDrawer,
+        content_tabs
+    ],
+    id='ali-content_panel',
+    style={'width':'98%', 'height':'100%', 'position':'relative'},
 )
