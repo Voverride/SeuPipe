@@ -29,12 +29,11 @@ Once the environment is set up, you can run the web application using the follow
 1. Navigate to the project directory (where the `main.py` file is located).
 2. Run the app with custom parameters:
    * **port:** `8088 (default)`
-   * **debug:** `False (default)`
 
    by executing the following command:
 
    ```bash
-   python main.py --port <port_number> --debug <True/False>
+   python main.py --port <port_number>
    ```
 
    For example, to run the app on `auto-detected network IP` at port `8088`:
