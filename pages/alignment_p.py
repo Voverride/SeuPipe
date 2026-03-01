@@ -197,6 +197,8 @@ content_tabs = fac.AntdTabs(
             'children': fac.AntdSpace(
                 [
                     dcc.Store(id='ali-store-figureScale', data={}),
+                    dcc.Store(id='ali-store-leftLayout', data=None),
+                    dcc.Store(id='ali-store-rightLayout', data=None),
                     fac.AntdSpace(
                         [
                             fac.AntdButton(
@@ -297,11 +299,26 @@ content_tabs = fac.AntdTabs(
                             ),
                             style={'height': '100%', 'width': '100%'}
                         ),
-                        'collapsible': True,
+                        'size': '100%',
+                        'collapsible': False,
+                        'resizable': False,
+                    },
+                    {
+                        'children': fac.AntdCenter(
+                            dcc.Graph(
+                                figure=hiddenGraph,
+                                config={'displaylogo':False}, 
+                                id='ali-graph-right', 
+                                style={'height': '100%', 'width': '100%'},
+                            ),
+                            style={'height': '100%', 'width': '100%'}
+                        ),
+                        'collapsible': False,
+                        'resizable': False,
                     }
                 ],
                 id='ali-splitter-figure',
-                style={'height': 'calc(93vh - 65px)', 'width':'100%', 'overflow': 'auto'}
+                style={'height': 'calc(93vh - 65px)', 'width':'100%'}
             )
         }
     ],
@@ -312,7 +329,23 @@ content_panel = html.Div(
     [
         new_project_modal,
         ManualAdjustDrawer,
-        content_tabs
+        content_tabs,
+        fac.AntdSpace(
+            [
+                fac.AntdBadge(dot=True, color='#5F9EA0'),
+                fac.AntdText(
+                    id='ali-live-username',
+                    style={'color':'#5F9EA0'}
+                ),
+            ],
+            id='ali-live-userspace',
+            style={
+                'opacity': 0,
+                'position':'absolute',
+                'top':'50px',
+                'left':'1px',
+            }
+        )
     ],
     id='ali-content_panel',
     style={'width':'98%', 'height':'100%', 'position':'relative'},

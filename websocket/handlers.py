@@ -1,6 +1,40 @@
 from controller.auth import *
 from setting import setting
+from dash import set_props, Patch
 import json
+
+async def serverSendUpdateManualAdjustStatus(key, websocket, ws, ms, **kwargs):
+    """
+    服务端发送更新手动调整任务状态信息
+    """
+    project = kwargs.get('project', None)
+    operations = kwargs.get('operations', None)
+    username = kwargs.get('username', None)
+    data = dict(
+        key=key,
+        operations=operations,
+        username=username,
+    )
+    for connected in ws.clients:
+        if connected.curMenuItem==setting.alignment:
+            ws_project = connected.params.get('project', None)
+            if project==ws_project:
+                await connected.send(json.dumps(data))
+
+def clientParseUpdateManualAdjustStatus(message, websocket, ws, ms, **kwargs):
+    """
+    客户端解析更新手动调整任务状态信息
+    """
+    operations = message.get('operations', None)
+    username = message.get('username', None)
+    if operations is not None:
+        patch = Patch()
+        for idx, op in operations.items():
+            patch['data'][int(idx)]['x'] = op['x']
+            patch['data'][int(idx)]['y'] = op['y']
+        set_props('ali-graph-left', dict(figure=patch))
+        if username is not None:
+            set_props('ali-live-username', dict(children=username))
 
 async def serverSendUpdateAlignmentStatus(key, websocket, ws, ms, **kwargs):
     """

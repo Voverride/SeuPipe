@@ -17,6 +17,7 @@ class Message:
         self._updateClusteringStatus_s2c = 'update_clustering_status_s2c'
         self._updateAnnotationStatus_s2c = 'update_annotation_status_s2c'
         self._updateAlignmentStatus_s2c = 'update_alignment_status_s2c'
+        self._updateManualAdjustStatus_s2c = 'update_manual_adjust_status_s2c'
 
         self._handlers = {
             # 建立ws连接时检查登录状态
@@ -88,6 +89,11 @@ class Message:
             self._updateAlignmentStatus_s2c: {
                 'send': serverSendUpdateAlignmentStatus,
                 'parse': clientParseUpdateAlignmentStatus
+            },
+            # 更新手动调整任务状态
+            self._updateManualAdjustStatus_s2c: {
+                'send': serverSendUpdateManualAdjustStatus,
+                'parse': clientParseUpdateManualAdjustStatus
             },
         }
     

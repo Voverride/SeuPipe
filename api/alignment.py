@@ -72,7 +72,6 @@ def paste1(observed_metadata, use_gpu=False, use_rep=None):
             adata.obs.loc[index, x_field] = x_aligned
             adata.obs.loc[index, y_field] = y_aligned
         alidata.update_coordinate(observed_metadata['projectName'], adata.obs)
-        alidata.update_resultfig(observed_metadata['projectName'], adata.obs, x_field, y_field, z_field)
         set_steps_status(observed_metadata, cur_step, StepStatus.FINISH, notify=True)
         set_steps_status(observed_metadata, cur_step, StepStatus.FINISH, notify=True)
     except:
@@ -127,7 +126,6 @@ def paste2(observed_metadata, use_rep=None):
             adata.obs.loc[index, x_field] = x_aligned
             adata.obs.loc[index, y_field] = y_aligned
         alidata.update_coordinate(observed_metadata['projectName'], adata.obs)
-        alidata.update_resultfig(observed_metadata['projectName'], adata.obs, x_field, y_field, z_field)
         set_steps_status(observed_metadata, cur_step, StepStatus.FINISH, notify=True)
     except:
         set_steps_status(observed_metadata, cur_step, StepStatus.ERROR)

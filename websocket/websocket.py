@@ -14,7 +14,16 @@ class WebSocket:
         """
         async def startWebSocketServer():
             host, port = get_local_ip(), setting.ws_port
-            async with websockets.serve(self.handleConnect, host, port):
+            async with websockets.serve(
+                self.handleConnect, host, port,
+                compression=None,
+                open_timeout=30,
+                ping_interval=30,
+                ping_timeout=10,
+                close_timeout=5,
+                max_size=5 * 1024 * 1024,
+                max_queue=32
+            ):
                 await asyncio.Future()
         asyncio.run(startWebSocketServer())
     
@@ -22,15 +31,21 @@ class WebSocket:
         """
         处理每个WebSocket连接
         """
-        websocket.curMenuItem = None
-        websocket.params = {}
-        self.clients.add(websocket)
-        await ms.serverSend(ms._loginState_s2c, websocket, self)
         try:
+            websocket.curMenuItem = None
+            websocket.params = {}
+            self.clients.add(websocket)
+            await ms.serverSend(ms._loginState_s2c, websocket, self)
             async for message in websocket:
                 await ms.serverParse(message, websocket, self)
         finally:
             self.clients.remove(websocket)
+
+    async def notifyUpdateManualAdjustStatus(self, operation, key, value, **kwargs):
+        """
+        通知处于对齐任务页面的用户更新手动调整状态
+        """
+        await ms.serverSend(ms._updateManualAdjustStatus_s2c, ws=self, **kwargs)
 
     async def notifyUpdateAlignmentStatus(self, operation, key, value, **kwargs):
         """

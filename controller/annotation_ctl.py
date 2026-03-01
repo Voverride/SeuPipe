@@ -8,6 +8,24 @@ from controller.notice import set_aside_notice
 from dataManager.annotation_d import annData
 from controller.notice import set_head_notice
 
+def update_relayout(patch, relayoutData):
+    """
+    更新视图
+    """
+    if 'scene.camera' in relayoutData:
+        camera = relayoutData['scene.camera']
+        if 'projection' in camera:
+            patch['layout']['scene']['projection']['type'] = camera['projection']['type']
+        if 'center' in camera:
+            patch['layout']['scene']['camera']['center'] = camera['center']
+        if 'eye' in camera:
+            patch['layout']['scene']['camera']['eye'] = camera['eye']
+        if 'up' in camera:
+            patch['layout']['scene']['camera']['up'] = camera['up']
+    if 'scene.aspectratio' in relayoutData:
+        patch['layout']['scene']['aspectmode'] = 'manual'
+        patch['layout']['scene']['aspectratio'] = relayoutData['scene.aspectratio']
+
 def export_annotation_file(path):
     """
     导出注释文件

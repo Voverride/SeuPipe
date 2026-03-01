@@ -4,7 +4,7 @@ import json
 from dash import html
 import feffery_antd_components as fac
 
-def set_aside_notice(title:str, content:str, type:str, duration:int=10,)->None:
+def set_aside_notice(title:str, content:str, type:str, duration:int=30,)->None:
     """
     Set the aside notice with specified content and type.
 
@@ -70,6 +70,9 @@ def global_error_handler(err:Exception)->None:
         'display': 'flex',
     }
     info = str(err)
+    if 'Extra data' in info:
+        set_aside_notice('Network Error', 'Please try to refresh the page', 'error')
+        return
     input = json.dumps(callback_context.triggered)
     trace = traceback.format_exc()
     dash.set_props(

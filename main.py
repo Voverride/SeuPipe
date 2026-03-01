@@ -33,6 +33,63 @@ app = dash.Dash(
 app.layout = main_layout
 
 app.clientside_callback(
+    """
+    function(username, activeKey) {
+        if (!username) return
+        if (activeKey != 'Figure') return
+        newStyle={
+            'opacity': 1,
+            'position':'absolute',
+            'top':'50px',
+            'left':'1px',
+            'transition': 'opacity 0.3s ease-in-out'
+        }
+        dash_clientside.set_props("ali-live-userspace", {style: newStyle})
+        dash_clientside.set_props("ali-live-userspace", {style: newStyle})
+        if (window.AliLiveUsernameTimer) {
+            clearTimeout(window.AliLiveUsernameTimer);
+        }
+        window.AliLiveUsernameTimer = setTimeout(() => {
+            newStyle['opacity'] = 0
+            dash_clientside.set_props("ali-live-userspace", {style: newStyle})
+        }, 5000);
+    }
+    """,
+    Input('ali-live-username', 'children'),
+    State('ali-content-tabs', 'activeKey')
+)
+
+app.clientside_callback(
+    """
+    function(relayoutData) {
+        if (window.debounceTimer) {
+            clearTimeout(window.debounceTimer);
+        }
+        window.debounceTimer = setTimeout(() => {
+            dash_clientside.set_props("ali-store-leftLayout", {data: relayoutData})
+        }, 100);
+    }
+    """,
+    Input('ali-graph-left', 'relayoutData'),
+    prevent_initial_call=True
+)
+
+app.clientside_callback(
+    """
+    function(relayoutData) {
+        if (window.debounceTimer) {
+            clearTimeout(window.debounceTimer);
+        }
+        window.debounceTimer = setTimeout(() => {
+            dash_clientside.set_props("ali-store-rightLayout", {data: relayoutData})
+        }, 100);
+    }
+    """,
+    Input('ali-graph-right', 'relayoutData'),
+    prevent_initial_call=True
+)
+
+app.clientside_callback(
     """(nClicks, collapsed) => {
         return [!collapsed, collapsed ? 'antd-arrow-left' : 'antd-arrow-right'];
     }""",

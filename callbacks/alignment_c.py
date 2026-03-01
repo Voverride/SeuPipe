@@ -1,10 +1,342 @@
 from pages.components.fileSelecter import fileSelecter
 from controller.alignment_ctl import *
 from websocket.websocket import ms
-from dash import dcc
 from dash.exceptions import PreventUpdate
 from dash import Input, Output, State, no_update, callback, Patch, ctx
 from controller.auth import verify_modify_permission
+import plotly.express as px
+import pandas as pd
+
+hiddenDf = pd.DataFrame({
+    'x': [5],
+    'y': [3],
+    'z': [8]
+})
+
+hiddenGraph = px.scatter_3d(hiddenDf, x='x', y='y', z='z')
+hiddenGraph.update_layout(
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+)
+
+@callback(
+    Input('ma-selecter-colorMode', 'value'),
+    State('ma-selecter-activeSlice', 'value'),
+    State('ma-selecter-referenceSlice', 'value'),
+    State('ma-ColorPicker-actSlice', 'value'),
+    State('ma-ColorPicker-refSlice', 'value'),
+    State('ma-selecter-colorField', 'value'),
+    State('ma-selecter-colorGene', 'value'),
+    State('ma-selecter-colorRange', 'value'),
+    State('ali-select-project', 'value'),
+    State('ali-icon-add-contrast', 'icon'),
+    running=[
+        (Output('ma-selecter-colorMode', 'disabled'), True, False)
+    ],
+    prevent_initial_call=True
+)
+def colormode_change(colorMode, actSlice, refSlice, actColor, refColor, colorField, colorGene, colorRange, project, icon):
+    """
+    颜色模式改变
+    """
+    patch = Patch()
+    if colorMode=='Field' and colorField:
+        set_color_byfield(patch, project, colorField)
+        set_props('ali-graph-left', dict(figure=patch))
+        if icon=='antd-minus':
+            set_props('ali-graph-right', dict(figure=patch))
+        return
+    if colorMode=='Gene' and colorGene:
+        set_color_bygene(patch, project, colorGene, colorRange)
+        set_props('ali-graph-left', dict(figure=patch))
+        if icon=='antd-minus':
+            set_props('ali-graph-right', dict(figure=patch))
+        return
+    elif colorMode=='Custom':
+        if refSlice and refColor:
+            i = alidata.get_slice_index(project, refSlice)
+            patch['data'][i]['marker']['color'] = refColor
+        if actSlice and actColor:
+            i = alidata.get_slice_index(project, actSlice)
+            patch['data'][i]['marker']['color'] = actColor
+        set_props('ali-graph-left', dict(figure=patch))
+        if icon=='antd-minus':
+            set_props('ali-graph-right', dict(figure=patch))
+
+@callback(
+    Input('ma-selecter-colorGene', 'value'),
+    Input('ma-selecter-colorRange', 'value'),
+    State('ali-select-project', 'value'),
+    State('ali-icon-add-contrast', 'icon'),
+    running=[
+        (Output('ma-selecter-colorGene', 'disabled'), True, False),
+        (Output('ma-selecter-colorRange', 'disabled'), True, False),
+    ]
+)
+def update_colorGene(colorGene, colorRange, project, icon):
+    """
+    更新基因颜色
+    """
+    if not colorGene or not colorRange:
+        return
+    patch = Patch()
+    set_color_bygene(patch, project, colorGene, colorRange)
+    set_props('ali-graph-left', dict(figure=patch))
+    if icon=='antd-minus':
+        set_props('ali-graph-right', dict(figure=patch))
+
+@callback(
+    Output('ma-div-legend', 'children', allow_duplicate=True),
+    Output('ma-div-loadMore', 'style', allow_duplicate=True),
+    Input('ma-button-loadMore', 'nClicks'),
+    State('ma-div-loadMore', 'style'),
+    State('ma-selecter-colorMode', 'value'),
+    State('ma-selecter-colorField', 'value'),
+    State('ali-select-project', 'value'),
+    prevent_initial_call=True
+)
+def load_more_legend(nClicks, loadMore, colorMode, colorField, project):
+    """
+    加载更多图例
+    """
+    if nClicks and colorMode=='Field' and colorField:
+        legends, hasLegend = get_field_legends(project, colorField, loadMore['legendNum'])
+        patch_style = Patch()
+        patch_legend = Patch()
+        displayLoadMore = 'none'
+        if hasLegend:
+            displayLoadMore = 'block'
+        patch_style['display'] = displayLoadMore
+        patch_style['legendNum'] += len(legends)
+        patch_legend+=legends
+        return patch_legend, patch_style
+    raise PreventUpdate
+
+@callback(
+    Output('ma-div-legend', 'children', allow_duplicate=True),
+    Output('ma-div-loadMore', 'style', allow_duplicate=True),
+    Input('ma-selecter-colorMode', 'value'),
+    Input('ma-selecter-colorField', 'value'),
+    State('ali-select-project', 'value'),
+    prevent_initial_call=True
+)
+def update_expand_fieldLegend_panel(colorMode, colorField, project):
+    """
+    刷新field域对应图例内容
+    """
+    if colorMode=='Field' and colorField:
+        legends, hasLegend = get_field_legends(project, colorField, 0)
+        patch = Patch()
+        displayLoadMore = 'none'
+        if hasLegend:
+            displayLoadMore = 'block'
+        patch['display'] = displayLoadMore
+        patch['legendNum'] = len(legends)
+        return legends, patch
+    raise PreventUpdate
+
+@callback(
+    Output('ma-card-legend', 'visible', allow_duplicate=True),
+    Output('ma-card-legend', 'title', allow_duplicate=True),
+    Input('ma-selecter-colorMode', 'value'),
+    Input('ma-selecter-colorField', 'value'),
+    Input('gs-drawer-manual', 'visible'),
+    prevent_initial_call=True
+)
+def switch_expand_fieldLegend_panel(colorMode, colorField, drawerVisable):
+    """
+    开关field域对应图例
+    """
+    if colorMode=='Field' and drawerVisable and colorField:
+        return True, colorField
+    return False, no_update
+
+@callback(
+    Input('ma-selecter-colorField', 'value'),
+    State('ali-select-project', 'value'),
+    State('ali-icon-add-contrast', 'icon'),
+    running=[
+        (Output('ma-selecter-colorField', 'disabled'), True, False),
+    ],
+)
+def update_sliceColor_byField(field, project, icon):
+    """
+    基于数据域显示切片颜色
+    """
+    if not field:
+        return
+    patch = Patch()
+    set_color_byfield(patch, project, field)
+    set_props('ali-graph-left', dict(figure=patch))
+    if icon=='antd-minus':
+        set_props('ali-graph-right', dict(figure=patch))
+
+@callback(
+    Output('ma-ColorPicker-actSlice', 'disabled'),
+    Output('ma-ColorPicker-refSlice', 'disabled'),
+    Output('ma-selecter-colorField', 'disabled'),
+    Output('ma-selecter-colorGene', 'disabled'),
+    Output('ma-selecter-colorRange', 'disabled'),
+    Input('ali-button-manualAdjust', 'nClicks'),
+    Input('ma-selecter-colorMode', 'value'),
+)
+def disabled_color_mode(_, value):
+    """
+    基于colorMode禁用颜色组件
+    """
+    if value=='Field':
+        return True, True, False, True, True
+    elif value=='Gene':
+        return True, True, True, False, False
+    return False, False, True, True, True
+
+@callback(
+    Input('ali-button-exportData', 'nClicks'),
+    State('ali-select-project', 'value'),
+)
+def export_data(nc, project_name):
+    """
+    导出数据
+    """
+    if nc:
+        if not project_name:
+            set_head_notice('Please select a project!', type='warning')
+            return
+        alidata.set_export_project(project_name)
+        fileSelecter.open_export_box()
+
+@callback(
+    Input('ma-button-up', 'nClicks'),
+    Input('ma-button-down', 'nClicks'),
+    Input('ma-button-left', 'nClicks'),
+    Input('ma-button-right', 'nClicks'),
+    Input('ma-button-clockwise', 'nClicks'),
+    Input('ma-button-unclockwise', 'nClicks'), 
+    State('ma-selecter-activeSlice', 'value'),
+    State('ma-selecter-referenceSlice', 'value'),
+    State('ma-inputNum-stepSize', 'value'),
+    State('ma-inputNum-rotationAngle', 'value'),
+    State('ali-select-project', 'value'),
+    State('ma-table-SyncSlices', 'selectedRowKeys'),
+)
+def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice, stepSize, rotationAngle, project, selectedRowKeys):
+    """
+    根据方向按钮调整切片位置
+    """
+    if alidata.is_running(project):
+        set_head_notice(f'Project {project} is running, please wait !', type='warning')
+        return
+    modifyName = alidata.is_project_modify(project)
+    if modifyName:
+        set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
+        return
+    try:
+        alidata.set_project_modify(project)
+        buttonPressed = up or down or left or right or clockwise or unclockwise
+        if not buttonPressed:
+            return
+        permission = verify_modify_permission()
+        if not permission:
+            set_head_notice(f'permission denied !', type='warning')
+            return
+        elif not actSlice:
+            set_head_notice(f'The active slice cannot be empty !', type='warning')
+            return
+        elif not refSlice:
+            set_head_notice(f'The reference slice cannot be empty !', type='warning')
+            return
+        elif not stepSize:
+            set_head_notice(f'Step size cannot be empty !', type='warning')
+            return
+        elif not rotationAngle:
+            set_head_notice(f'Rotation angle cannot be empty !', type='warning')
+            return
+        tid = ctx.triggered_id
+        if tid=='ma-button-up':
+            transMtx = alidata.get_coord_trans_mtx(dy=stepSize)
+        elif tid=='ma-button-down':
+            transMtx = alidata.get_coord_trans_mtx(dy=-stepSize)
+        elif tid=='ma-button-left':
+            transMtx = alidata.get_coord_trans_mtx(dx=-stepSize)
+        elif tid=='ma-button-right':
+            transMtx = alidata.get_coord_trans_mtx(dx=stepSize)
+        elif tid=='ma-button-clockwise':
+            transMtx = alidata.get_coord_trans_mtx(reg=rotationAngle)
+        elif tid=='ma-button-unclockwise':
+            transMtx = alidata.get_coord_trans_mtx(reg=-rotationAngle)
+        if transMtx is None:
+            return
+        syncSlices = get_sync_slices(project, selectedRowKeys)
+        actSlice = float(actSlice)
+        syncSlices.add(actSlice)
+        get_transformed_coord(project, transMtx, syncSlices)
+    except Exception as e:
+        raise e
+    finally:
+        alidata.unset_project_modify(project)
+
+@callback(
+    Input('key-pressed-events', 'data'),
+    State('ma-selecter-activeSlice', 'value'),
+    State('ma-selecter-referenceSlice', 'value'),
+    State('ma-inputNum-stepSize', 'value'),
+    State('ma-inputNum-rotationAngle', 'value'),
+    State('ali-select-project', 'value'),
+    State('ma-table-SyncSlices', 'selectedRowKeys'),
+    State('gs-drawer-manual', 'visible'),
+)
+def detect_pressed_key(keyboard, actSlice, refSlice, stepSize, rotationAngle, project, selectedRowKeys, visible):
+    """
+    绑定键盘事件调整切片
+    37 : left
+    38 : up
+    39 : right
+    40 : down
+    1037 : ctrl+left
+    1038 : ctrl+up
+    1039 : ctrl+right
+    1040 : ctrl+down
+    """
+    if not visible:
+        return
+    if alidata.is_running(project):
+        set_head_notice(f'Project {project} is running, please wait !', type='warning')
+        return
+    modifyName = alidata.is_project_modify(project)
+    if modifyName:
+        set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
+        return
+    try:
+        alidata.set_project_modify(project)
+        keyCode = int(keyboard) if keyboard.isdigit() else 0
+        detectedKeys = {37, 38, 39, 40, 1037, 1038, 1039, 1040}
+        if not actSlice or not refSlice or not stepSize or not rotationAngle or keyCode not in detectedKeys:
+            raise PreventUpdate
+        permission = verify_modify_permission()
+        if not permission:
+            return
+        if keyCode==38:
+            transMtx = alidata.get_coord_trans_mtx(dy=stepSize)
+        elif keyCode==40:
+            transMtx = alidata.get_coord_trans_mtx(dy=-stepSize)
+        elif keyCode==37:
+            transMtx = alidata.get_coord_trans_mtx(dx=-stepSize)
+        elif keyCode==39:
+            transMtx = alidata.get_coord_trans_mtx(dx=stepSize)
+        elif keyCode==1037 or keyCode==1038:
+            transMtx = alidata.get_coord_trans_mtx(reg=-rotationAngle)
+        elif keyCode==1039 or keyCode==1040:
+            transMtx = alidata.get_coord_trans_mtx(reg=rotationAngle)
+        if transMtx is None:
+            return
+        syncSlices = get_sync_slices(project, selectedRowKeys)
+        actSlice = float(actSlice)
+        syncSlices.add(actSlice)
+        get_transformed_coord(project, transMtx, syncSlices)
+    except Exception as e:
+        raise e
+    finally:
+        alidata.unset_project_modify(project)
 
 @callback(
     Output('ma-icon-autoPickAbove', 'icon'),
@@ -70,67 +402,107 @@ def update_selected_SyncSlices(pickAbove, pickBelow, activeSlice, selectedRowKey
                 selectedRowKeys.append(rowkey)
     set_props('ma-table-SyncSlices', dict(selectedRowKeys=selectedRowKeys))
 
+
 @callback(
-    Output('ali-graph-left', 'figure', allow_duplicate=True),
-    Output('ali-graph-right', 'figure', allow_duplicate=True),
-    Input("ali-graph-left", "relayoutData"),
-    Input("ali-graph-right", "relayoutData"),
+    Input('ali-store-leftLayout', 'data'),
     State('ali-icon-add-contrast', 'icon'),
     State('ali-store-figureScale', 'data'),
-    prevent_initial_call=True
 )
-def update_relayout(aliLayout, oriLayout, icon, figureScale):
+def update_right_relayout(aliLayout, icon, figureScale):
     """
-    同步两图状态
+    同步右图状态
     """
-    if icon=='antd-add':
-        raise PreventUpdate
+    if aliLayout is None:
+        return
+    
+    patchAli = Patch()
+    update_relayoutfig(patchAli, aliLayout)
+    set_props('ali-graph-left', dict(figure=patchAli))
+
+    if icon=='antd-plus':
+        return
 
     oriScale = figureScale.get('initScale', 1)
     aliScale = figureScale.get('resultScale', 1)
 
-    tid = ctx.triggered_id
-    patchOri = Patch()
+    patch = Patch()
+    
+    if 'scene.camera' in aliLayout:
+        patch['layout']['scene']['camera']['eye'] = aliLayout['scene.camera']['eye']
+    if 'scene.aspectratio' in aliLayout:
+        factor = oriScale/aliScale
+        patch['layout']['scene']['aspectmode'] = 'manual'
+        aspectratio = aliLayout['scene.aspectratio'].copy()
+        aspectratio['x']*=factor
+        aspectratio['y']*=factor
+        patch['layout']['scene']['aspectratio'] = aspectratio
+    set_props('ali-graph-right', dict(figure=patch))
+
+@callback(
+    Input('ali-store-leftLayout', 'data'),
+    State('ali-icon-add-contrast', 'icon'),
+    State('ali-store-figureScale', 'data'),
+)
+def update_right_relayout(aliLayout, icon, figureScale):
+    """
+    同步右图状态
+    """
+    if aliLayout is None:
+        return
+    
     patchAli = Patch()
-    if tid == 'ali-graph-right':
-        mark = False
-        if 'scene.camera' in oriLayout:
-            patchAli['layout']['scene']['camera']['eye'] = oriLayout['scene.camera']['eye']
-            patchOri['layout']['scene']['camera']['eye'] = oriLayout['scene.camera']['eye']
-            mark = True
-        if 'scene.aspectratio' in oriLayout:
-            factor = aliScale/oriScale
-            patchAli['layout']['scene']['aspectmode'] = 'manual'
-            patchOri['layout']['scene']['aspectmode'] = 'manual'
-            aspectratio = oriLayout['scene.aspectratio'].copy()
-            aspectratio['x']*=factor
-            aspectratio['y']*=factor
-            patchAli['layout']['scene']['aspectratio'] = aspectratio
-            patchOri['layout']['scene']['aspectratio'] = oriLayout['scene.aspectratio']
-            mark = True
-        if mark:
-            return patchAli, patchOri
-    if tid == 'ali-graph-left':
-        mark = False
-        if 'scene.camera' in aliLayout:
-            patchOri['layout']['scene']['camera']['eye'] = aliLayout['scene.camera']['eye']
-            patchAli['layout']['scene']['camera']['eye'] = aliLayout['scene.camera']['eye']
-            # z_dire = aliLayout['scene.camera']['eye']['z']
-            # alidata.set_actref_slice(usrname, reverse=False if z_dire>=0 else True)
-            mark = True
-        if 'scene.aspectratio' in aliLayout:
-            factor = oriScale/aliScale
-            patchOri['layout']['scene']['aspectmode'] = 'manual'
-            patchAli['layout']['scene']['aspectmode'] = 'manual'
-            aspectratio = aliLayout['scene.aspectratio'].copy()
-            aspectratio['x']*=factor
-            aspectratio['y']*=factor
-            patchOri['layout']['scene']['aspectratio'] = aspectratio
-            patchAli['layout']['scene']['aspectratio'] = aliLayout['scene.aspectratio']
-            mark = True
-        if mark:
-            return patchAli, patchOri
-    raise PreventUpdate
+    update_relayoutfig(patchAli, aliLayout)
+    set_props('ali-graph-left', dict(figure=patchAli))
+
+    if icon=='antd-plus':
+        return
+
+    oriScale = figureScale.get('initScale', 1)
+    aliScale = figureScale.get('resultScale', 1)
+
+    patch = Patch()
+    
+    if 'scene.camera' in aliLayout:
+        patch['layout']['scene']['camera']['eye'] = aliLayout['scene.camera']['eye']
+    if 'scene.aspectratio' in aliLayout:
+        factor = oriScale/aliScale
+        patch['layout']['scene']['aspectmode'] = 'manual'
+        aspectratio = aliLayout['scene.aspectratio'].copy()
+        aspectratio['x']*=factor
+        aspectratio['y']*=factor
+        patch['layout']['scene']['aspectratio'] = aspectratio
+
+    set_props('ali-graph-right', dict(figure=patch))
+
+@callback(
+    Input('ali-store-rightLayout', 'data'),
+    State('ali-store-figureScale', 'data'),
+)
+def update_left_relayout(oriLayout, figureScale):
+    """
+    同步左图状态
+    """
+    if oriLayout is None:
+        return
+
+    oriScale = figureScale.get('initScale', 1)
+    aliScale = figureScale.get('resultScale', 1)
+
+    patch = Patch()
+    patchOri = Patch()
+    update_relayoutfig(patchOri, oriLayout) 
+
+    if 'scene.camera' in oriLayout:
+        patch['layout']['scene']['camera']['eye'] = oriLayout['scene.camera']['eye']
+    if 'scene.aspectratio' in oriLayout:
+        factor = aliScale/oriScale
+        patch['layout']['scene']['aspectmode'] = 'manual'
+        aspectratio = oriLayout['scene.aspectratio'].copy()
+        aspectratio['x']*=factor
+        aspectratio['y']*=factor
+        patch['layout']['scene']['aspectratio'] = aspectratio
+    set_props('ali-graph-left', dict(figure=patch))  
+    set_props('ali-graph-right', dict(figure=patchOri))
 
 @callback(
     Output('ali-graph-left', 'figure', allow_duplicate=True),
@@ -145,7 +517,6 @@ def switch_grid(nClicks, style):
     """
     if not nClicks:
         raise PreventUpdate
-    patch = no_update
     status = ['#949495', '#ca8269'] # 0 -> 关， 1-> 开
     patch = Patch()
     if style['backgroundColor']==status[0]:
@@ -183,13 +554,16 @@ def reset_view(nClicks, actSlice, refSlice):
     State('ali-icon-add-contrast', 'icon'),
     State('ali-select-project', 'value'),
     State('ma-selecter-activeSlice', 'value'),
+    State('ma-selecter-colorMode', 'value'),
+    State('ma-selecter-colorField', 'value'),
+    State('ma-selecter-colorGene', 'value')
 )
-def reference_slice_change(slice, color, icon, project, actSlice):
+def reference_slice_change(slice, color, icon, project, actSlice, colorMode, colorField, colorGene):
     """
     更新参考切片显示配置
     """
     if slice:
-        update_reference_slice(project, slice, actSlice, color, icon)
+        update_reference_slice(project, slice, actSlice, color, icon, colorMode, colorField, colorGene)
 
 @callback(
     Input('ma-selecter-activeSlice', 'value'),
@@ -200,8 +574,11 @@ def reference_slice_change(slice, color, icon, project, actSlice):
     State('ma-icon-autoPickAbove', 'icon'),
     State('ma-icon-autoPickBelow', 'icon'),
     State('ma-slider-znum', 'data'),
+    State('ma-selecter-colorMode', 'value'),
+    State('ma-selecter-colorField', 'value'),
+    State('ma-selecter-colorGene', 'value')
 )
-def active_slice_change(slice, color, icon, project, refSlice, autoPickAbove, autoPickBelow, znum):
+def active_slice_change(slice, color, icon, project, refSlice, autoPickAbove, autoPickBelow, znum, colorMode, colorField, colorGene):
     """
     更新当前切片显示配置
     """
@@ -223,17 +600,17 @@ def active_slice_change(slice, color, icon, project, refSlice, autoPickAbove, au
         set_props('ma-table-SyncSlices', dict(selectedRowKeys=selectedRowKeys))
 
     if slice:
-        update_active_slice(project, slice, refSlice, color, icon)
+        update_active_slice(project, slice, refSlice, color, icon, colorMode, colorField, colorGene)
 
 @callback(
     Input('ma-button-slicer', 'nClicks'),
     State('ma-slider-znums', 'data'),
     State('ma-slider-z', 'value'),
-    State('ali-icon-add-contrast', 'icon'),
+    State('ali-icon-add-contrast', 'icon')
 )
 def update_slicer(nc, znums, zvalue, icon):
     """
-    更新切片配置
+    裁剪切片
     """
     if nc:
         zmin = min(zvalue)
@@ -254,7 +631,22 @@ def update_spot(spotSize, borderWidth, borderColor, znum):
     update_spot_properties(spotSize, borderWidth, borderColor, znum)
 
 @callback(
-    Output('ali-splitter-figure', 'items'),
+    Output('ma-ColorPicker-boarderColor', 'value', allow_duplicate=True),
+    Input('ali-icon-add-contrast', 'icon'),
+    State('ma-ColorPicker-boarderColor', 'value'),
+    prevent_initial_call=True
+)
+def refresh_right_graph(icon, borderColor):
+    """
+    刷新右侧图像
+    """
+    if icon == 'antd-minus':
+        if borderColor=='#0D0015':
+            return '#0D0016'
+        return '#0D0015'
+    return no_update
+
+@callback(
     Output('ali-icon-add-contrast', 'icon'),
     Output('ali-content-tabs', 'activeKey', allow_duplicate=True),
     Input('ali-button-add-contrast', 'nClicks'),
@@ -264,19 +656,23 @@ def update_spot(spotSize, borderWidth, borderColor, znum):
     State('ma-selecter-borderWidth', 'value'),
     State('ma-ColorPicker-boarderColor', 'value'),
     State('ma-slider-z', 'value'),
+    State('ma-selecter-colorMode', 'value'),
+    State('ma-selecter-colorField', 'value'),
+    State('ma-selecter-colorGene', 'value'),
+    State('ma-selecter-colorRange', 'value'),
     running=[
         (Output('ali-button-add-contrast', 'loading'), True, False),
     ],
     prevent_initial_call=True
 )
-def add_contrast(nc, project, icon, spotSize, borderWidth, borderColor, zvalue):
+def add_contrast(nc, project, icon, spotSize, borderWidth, borderColor, zvalue, colorMode, colorField, colorGene, colorRange):
     """
     添加对比图像
     """
     if nc:
         if not project:
             set_head_notice('Please Select One Project', type='warning')
-            return no_update, no_update, no_update
+            return no_update, no_update
         patch = Patch()
         activeKey = 'Figure'
         if icon == 'antd-plus':
@@ -285,29 +681,30 @@ def add_contrast(nc, project, icon, spotSize, borderWidth, borderColor, zvalue):
             scale = figure['layout']['scene']['aspectratio']['x']
             scalePatch = Patch()
             scalePatch['initScale'] = scale
-            set_props('ali-store-figureScale', scalePatch)
+            set_props('ali-store-figureScale', dict(data=scalePatch))
             update_figure_spot(figure, spotSize, borderWidth, borderColor)
             zmin = min(zvalue)
             zmax = max(zvalue)
             for trace in figure['data']:
-                trace['visible'] = float(trace['z'][0]) >= zmin and float(trace['z'][0]) <= zmax
-            patch.append({
-                'children': fac.AntdCenter(
-                    dcc.Graph(
-                        figure=figure,
-                        config={'displaylogo':False}, 
-                        id='ali-graph-right', 
-                        style={'height': '100%', 'width': '100%'},
-                    ),
-                    style={'height': '100%', 'width': '100%'}
-                ),
-                'collapsible': True,
-            })
+                if float(trace['z'][0]) >= zmin and float(trace['z'][0]) <= zmax:
+                    trace['visible'] = True
+                else:
+                    trace['visible'] = 'legendonly'
+            if colorMode=='Field' and colorField:
+                set_color_byfield(figure, project, colorField)
+            if colorMode=='Gene' and colorGene:
+                set_color_bygene(figure, project, colorGene, colorRange)
+            set_props('ali-graph-right', dict(figure=figure))
+            patch[0]['size'] = '50%'
+            patch[1]['size'] = '50%'
         else:
             icon = 'antd-plus'
-            del patch[-1]
-        return patch, icon, activeKey
-    return no_update, no_update, no_update
+            patch[0]['size'] = '100%'
+            patch[1]['size'] = '0%'
+            set_props('ali-graph-right', dict(figure=hiddenGraph))
+        set_props('ali-splitter-figure', dict(items=patch))
+        return icon, activeKey
+    return no_update, no_update
 
 @callback(
     Input('ali-button-showBug', 'nClicks'),
@@ -395,7 +792,7 @@ def update_project_tabledata(project, icon, spotSize, borderWidth, borderColor):
             scale = figure['layout']['scene']['aspectratio']['x']
             scalePatch = Patch()
             scalePatch['initScale'] = scale
-            set_props('ali-store-figureScale', scalePatch)
+            set_props('ali-store-figureScale', dict(data=scalePatch))
             update_figure_spot(figure, spotSize, borderWidth, borderColor)
         else:
             figure = None
@@ -494,7 +891,7 @@ def update_slider_markers(value):
     Output('gs-drawer-manual', 'visible'),
     Output('ali-content-tabs', 'activeKey'),
     Input('ali-button-manualAdjust', 'nClicks'),
-    State('ali-select-project', 'value'),
+    State('ali-select-project', 'value')
 )
 def open_manual_adjust_drawer(nc, project):
     """
@@ -509,3 +906,15 @@ def open_manual_adjust_drawer(nc, project):
             return no_update, no_update
         return True, 'Figure'
     return no_update, no_update
+
+@callback(
+    Input('ali-content-tabs', 'activeKey'),
+)
+def close_live_userspace(activeKey):
+    """
+    关闭实时用户区域
+    """
+    patch = Patch()
+    if activeKey == 'ProjectInfo':
+        patch['opacity'] = 0
+        set_props('ali-live-userspace', dict(style=patch))

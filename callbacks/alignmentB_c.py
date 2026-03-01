@@ -674,7 +674,7 @@ def update_sliceColor_byColorType(colorType, gene, actSlice, refSlice):
 )
 def update_sliceColor_byGene(gene, actSlice, refSlice, colorType):
     """
-        基于基因表达显示切片颜色
+    基于基因表达显示切片颜色
     """
     if not gene:
         raise PreventUpdate

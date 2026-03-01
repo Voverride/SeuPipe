@@ -54,6 +54,7 @@ ManualAdjustDrawer = fac.AntdDrawer(
                                 placeholder='Spot Size=3',
                                 options=[1,2,3,4,5,6,7,8,9,10],
                                 value=5,
+                                persistence=True,
                                 allowClear=False,
                                 id='ma-selecter-spotSize',
                                 locale='en-us',
@@ -66,6 +67,7 @@ ManualAdjustDrawer = fac.AntdDrawer(
                                 placeholder='Border Width=0',
                                 options=[0,1],
                                 allowClear=False,
+                                persistence=True,
                                 value=1,
                                 id='ma-selecter-borderWidth',
                                 locale='en-us',
@@ -239,7 +241,7 @@ ManualAdjustDrawer = fac.AntdDrawer(
                             fac.AntdTooltip(
                                 fac.AntdInputNumber(
                                         min=0,
-                                        value=5,
+                                        value=10,
                                         placeholder='Step Size',
                                         id = 'ma-inputNum-stepSize',
                                         precision=5,
@@ -286,7 +288,7 @@ ManualAdjustDrawer = fac.AntdDrawer(
                                     min=0,
                                     id = 'ma-inputNum-rotationAngle',
                                     placeholder='Rotation Angle',
-                                    value = 2,
+                                    value = 5,
                                     precision=5,
                                     debounceWait=300,
                                     style={'width': 126, 'margin-right':21},

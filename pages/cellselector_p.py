@@ -209,7 +209,7 @@ control_panel = html.Div(
                 fac.AntdSpace(
                     [
                         fac.AntdTooltip(
-                            fac.AntdSlider(id='sel-select-spotSize', min=5, max=20, defaultValue=10, style={'width': '145px'}),
+                            fac.AntdSlider(id='sel-select-spotSize', min=5, max=20, defaultValue=10, persistence=True, style={'width': '145px'}),
                             title=fac.AntdText('select spot size'), color='white'
                         ),
                         fac.AntdTooltip(

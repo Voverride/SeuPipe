@@ -1,9 +1,10 @@
 name: SeuPipe
 channels:
+  - conda-forge
+  - bioconda
   - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/bioconda
   - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
   - https://repo.anaconda.com/pkgs/main
-  - conda-forge
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -49,20 +50,27 @@ dependencies:
       - access==1.1.9
       - adjusttext==1.3.0
       - affine==2.4.0
+      - aiobotocore==2.5.4
       - aiohappyeyeballs==2.6.1
       - aiohttp==3.11.14
+      - aioitertools==0.13.0
       - aiosignal==1.3.2
       - anndata==0.10.8
+      - annotated-doc==0.0.3
       - annotated-types==0.7.0
+      - anyio==4.11.0
       - array-api-compat==1.9.1
+      - asciitree==0.3.3
       - asttokens==2.4.1
       - astunparse==1.6.3
       - async-timeout==5.0.1
       - attrs==24.2.0
+      - av==15.1.0
       - babel==2.16.0
       - beautifulsoup4==4.12.3
       - bleach==6.2.0
       - blinker==1.8.2
+      - botocore==1.31.17
       - branca==0.8.1
       - cachelib==0.9.0
       - cachetools==5.5.2
@@ -72,9 +80,12 @@ dependencies:
       - cfgv==3.4.0
       - charset-normalizer==3.4.0
       - chex==0.1.89
+      - choreographer==1.2.1
+      - cjdk==0.4.1
       - click==8.1.7
       - click-plugins==1.1.1
       - cligj==0.7.2
+      - cloudpickle==3.1.2
       - colorama==0.4.6
       - colorbrewer==0.2.0
       - colorcet==3.1.0
@@ -85,7 +96,7 @@ dependencies:
       - csbdeep==0.8.1
       - cycler==0.12.1
       - cython==3.0.11
-      - dash==2.18.1
+      - dash==3.3.0
       - dash-auth==2.3.0
       - dash-bootstrap-components==1.6.0
       - dash-core-components==2.0.0
@@ -94,6 +105,7 @@ dependencies:
       - dash-html-components==2.0.0
       - dash-table==5.0.0
       - dash-testing-stub==0.0.2
+      - dask==2024.8.0
       - dataclass-wizard==0.22.3
       - debugpy==1.8.7
       - decorator==5.1.1
@@ -103,6 +115,7 @@ dependencies:
       - dill==0.3.9
       - diskcache==5.6.3
       - distlib==0.3.9
+      - distributed==2024.8.0
       - dnspython==2.7.0
       - docrep==0.3.2
       - dunamai==1.23.1
@@ -110,14 +123,17 @@ dependencies:
       - easydict==1.13
       - editorconfig==0.12.4
       - einops==0.8.1
+      - elementpath==5.0.4
       - esda==2.5.1
       - et-xmlfile==2.0.0
       - etils==1.5.2
       - exceptiongroup==1.2.2
       - executing==2.1.0
+      - fastapi==0.120.3
+      - fasteners==0.20
       - fastjsonschema==2.20.0
       - fastremap==1.15.1
-      - feffery-antd-components==0.3.15
+      - feffery-antd-components==0.4.2
       - filelock==3.16.1
       - fiona==1.10.1
       - flask==3.0.3
@@ -127,7 +143,7 @@ dependencies:
       - folium==0.19.5
       - fonttools==4.54.1
       - frozenlist==1.5.0
-      - fsspec==2024.10.0
+      - fsspec==2023.6.0
       - future==1.0.0
       - gast==0.6.0
       - geopandas==1.0.1
@@ -164,8 +180,11 @@ dependencies:
       - jaxlib==0.4.30
       - jaxtyping==0.2.19
       - jedi==0.19.1
+      - jgo==1.1.0
       - jinja2==3.1.4
+      - jmespath==1.0.1
       - joblib==1.4.2
+      - jpype1==1.6.0
       - jsbeautifier==1.15.1
       - jsonschema==4.23.0
       - jsonschema-specifications==2024.10.1
@@ -173,6 +192,7 @@ dependencies:
       - jupyter-core==5.7.2
       - jupyterlab-pygments==0.3.0
       - jupyterlab-widgets==3.0.14
+      - kaleido==0.2.1
       - keras==2.8.0
       - keras-preprocessing==1.1.2
       - kiwisolver==1.4.7
@@ -188,8 +208,10 @@ dependencies:
       - lightning-utilities==0.14.2
       - linear-operator==0.5.3
       - llvmlite==0.43.0
+      - locket==1.0.0
+      - logistro==2.0.1
       - loompy==3.0.8
-      - lxml==5.3.0
+      - lxml==4.9.4
       - mapclassify==2.8.1
       - markdown==3.7
       - markdown-it-py==3.0.0
@@ -225,6 +247,7 @@ dependencies:
       - networkx==2.8
       - nodeenv==1.9.1
       - numba==0.60.0
+      - numcodecs==0.12.1
       - numdifftools==0.9.41
       - numpy==1.26.4
       - numpy-groupies==0.11.2
@@ -243,13 +266,15 @@ dependencies:
       - nvidia-nvjitlink-cu12==12.4.127
       - nvidia-nvtx-cu12==12.4.127
       - oauthlib==3.2.2
+      - ome-types==0.6.3
+      - ome-zarr==0.10.2
       - opencv-python==4.10.0.84
       - opencv-python-headless==4.11.0.86
       - openpyxl==3.1.5
       - opt-einsum==3.4.0
       - optax==0.2.4
       - orbax-checkpoint==0.6.4
-      - orjson==3.10.14
+      - orjson==3.11.4
       - outcome==1.3.0.post0
       - packaging==24.1
       - paginate==0.5.7
@@ -258,6 +283,7 @@ dependencies:
       - pandas==2.2.3
       - pandocfilters==1.5.1
       - parso==0.8.4
+      - partd==1.4.2
       - paste-bio==1.4.0
       - paste2==1.0.1
       - pathspec==0.12.1
@@ -272,6 +298,7 @@ dependencies:
       - pooch==1.8.2
       - pot==0.9.1
       - pre-commit==4.2.0
+      - progressbar2==4.5.0
       - prompt-toolkit==3.0.48
       - propcache==0.3.1
       - protobuf==3.19.6
@@ -279,11 +306,13 @@ dependencies:
       - ptyprocess==0.7.0
       - pulp==3.1.1
       - pure-eval==0.2.3
+      - pyarrow==21.0.0
       - pyasn1==0.6.1
       - pyasn1-modules==0.4.2
       - pycparser==2.22
       - pydantic==2.9.2
       - pydantic-core==2.23.4
+      - pydantic-extra-types==2.11.0
       - pygments==2.18.0
       - pymdown-extensions==10.7.1
       - pymongo==4.11.3
@@ -301,9 +330,11 @@ dependencies:
       - pysal==24.1
       - pysocks==1.7.1
       - pytest==8.3.3
+      - pytest-timeout==2.4.0
       - python-dateutil==2.9.0.post0
       - python-igraph==0.11.8
       - python-pam==2.0.2
+      - python-utils==3.9.1
       - pytorch-lightning==2.5.1
       - pytz==2024.2
       - pyvista==0.44.2
@@ -318,6 +349,7 @@ dependencies:
       - regex==2024.11.6
       - requests==2.32.3
       - requests-oauthlib==2.0.0
+      - resource-backed-dask-array==0.1.0
       - retrying==1.3.4
       - rich==13.9.4
       - roifile==2024.9.15
@@ -326,6 +358,7 @@ dependencies:
       - rtree==1.4.0
       - ruff==0.4.10
       - ruptures==1.1.8
+      - s3fs==2023.6.0
       - scanpy==1.10.3
       - scikit-image==0.24.0
       - scikit-learn==1.4.2
@@ -333,6 +366,7 @@ dependencies:
       - scipy==1.12.0
       - scooby==0.10.0
       - scvi-tools==1.1.6.post2
+      - scyjava==1.12.1
       - seaborn==0.13.2
       - segregation==2.5.2
       - selenium==4.2.0
@@ -352,10 +386,12 @@ dependencies:
       - spreg==1.8.2
       - spvcm==0.3.0
       - stack-data==0.6.3
+      - starlette==0.49.1
       - statsmodels==0.14.4
       - stdlib-list==0.11.0
       - superqt==0.7.3
       - sympy==1.13.1
+      - tblib==3.2.2
       - tenacity==9.0.0
       - tensorboard==2.8.0
       - tensorboard-data-server==0.6.1
@@ -368,7 +404,7 @@ dependencies:
       - termcolor==3.0.1
       - texttable==1.7.0
       - threadpoolctl==3.5.0
-      - tifffile==2024.8.30
+      - tifffile==2023.2.28
       - tiktoken==0.8.0
       - tinycss2==1.4.0
       - tinydb==4.8.2
@@ -401,12 +437,19 @@ dependencies:
       - wcwidth==0.2.13
       - webcolors==24.8.0
       - webencodings==0.5.1
+      - websockets==15.0.1
       - werkzeug==3.0.6
       - widgetsnbextension==4.0.14
       - wrapt==1.17.2
       - wslink==2.3.3
       - wsproto==1.2.0
+      - xarray==2024.7.0
       - xlrd==2.0.1
+      - xmlschema==4.2.0
+      - xsdata==25.7
       - xyzservices==2025.1.0
       - yarl==1.18.3
+      - zarr==2.15.0
+      - zict==3.0.0
       - zipp==3.20.2
+prefix: /home/zhouyb/.conda/envs/SeuPipe

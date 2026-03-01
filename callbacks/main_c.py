@@ -8,8 +8,8 @@ import pages.expansion_p as expansion
 import pages.maskviewer_p as maskviewer
 import pages.annotation_p as annotation
 import pages.alignment_p as alignment
-import pages.visiualization_p as visualization
-import pages.lassion_p as lassion
+# import pages.visiualization_p as visualization
+# import pages.lassion_p as lassion
 
 # import pages.filtering_p as filtering
 
@@ -31,8 +31,8 @@ menu = [
     # {'title':setting.filtering, 'icon':'fc-multiple-inputs', 'page':filtering},
     {'title':setting.annotation, 'icon':'fc-view-details', 'page':annotation},
     {'title':setting.alignment, 'icon':'fc-workflow', 'page':alignment},
-    {'title':setting.visualization, 'icon':'fc-scatter-chart', 'page':visualization},
-    {'title':setting.lassion, 'icon':'fc-briefcase', 'page':lassion},
+    # {'title':setting.visualization, 'icon':'fc-scatter-chart', 'page':visualization},
+    # {'title':setting.lassion, 'icon':'fc-briefcase', 'page':lassion},
 ]
 
 menu.append({'title':setting.passcode, 'icon':'fc-tree-structure', 'page':passcode})

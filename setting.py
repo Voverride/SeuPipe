@@ -1,7 +1,7 @@
 class Setting:
     
     def __init__(self):
-        self.ws_port = 8766
+        self.ws_port = 8769
         self.regionClip = 'RegionClip'
         self.cellSelector = 'CellSelector'
         self.segmentation = 'Segmentation'

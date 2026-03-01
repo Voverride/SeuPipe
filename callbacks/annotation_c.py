@@ -25,6 +25,21 @@ def export_data(nc, project_name):
 
 @callback(
     Output('ann-graph-result', 'figure', allow_duplicate=True),
+    Input('ann-graph-result', 'relayoutData'),
+    prevent_initial_call=True
+)
+def update_graph_relayout(relayoutData):
+    """
+    更新图像的缩放和平移状态
+    """
+    if relayoutData is None:
+        return no_update
+    fig_patch = Patch()
+    update_relayout(fig_patch, relayoutData)
+    return fig_patch
+
+@callback(
+    Output('ann-graph-result', 'figure', allow_duplicate=True),
     Input('ann-button-slicer', 'nClicks'),
     State('ann-select-project', 'value'),
     State('ann-slider-slicer', 'value'),
