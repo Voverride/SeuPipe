@@ -279,7 +279,7 @@ def annotation_with_scvi_latend(adata, label_field):
     adata_query.obs[label_field] = predicted_labels
     return adata_query
 
-def get_diffgene_heatmap(adata_ori, label_field, top_n=5, min_logfc=0.25, min_pval=0.05):
+def get_diffgene_heatmap(adata_ori, label_field, top_n=3, min_logfc=0.25, min_pval=0.05):
     """
     计算差异表达基因并生成热图
     """
