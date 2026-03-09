@@ -94,7 +94,7 @@ new_project_modal = fac.AntdModal(
                     fac.AntdSpace(
                         [
                             fac.AntdCheckbox(label='Remove Hemoglobin Genes (Hb)', id='ann-remove-hb', checked=True, style={'marginBottom':'0.6rem'}),
-                            fac.AntdCheckbox(label='Use Highly Variable Genes (HVG)', id='ann-use-hvg', checked=True),
+                            fac.AntdCheckbox(label='Use Marker Genes (Marker)', id='ann-use-hvg', checked=True),
                         ],
                         direction='vertical',
                         style={'width':'50%', 'display':'inline-block'}
@@ -411,7 +411,7 @@ content_tabs = fac.AntdTabs(
                             {'title': 'rmMt', 'dataIndex': 'rm_mt', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
                             {'title': 'rmRibo', 'dataIndex': 'rm_ribo', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
                             {'title': 'rmHb', 'dataIndex': 'rm_hb', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
-                            {'title': 'useHVG', 'dataIndex': 'use_hvg', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
+                            {'title': 'useMarker', 'dataIndex': 'use_hvg', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
                             {'title': 'nLayers', 'dataIndex': 'n_layers', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
                             {'title': 'nHiddens', 'dataIndex': 'n_hiddens', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},
                             {'title': 'nLatent', 'dataIndex': 'n_latent', 'width':'8%', 'renderOptions': {'renderType': 'ellipsis'}},

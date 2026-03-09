@@ -41,7 +41,7 @@ def scvi_annotation(observed_metadata):
         query_path = annData.get_querydata_path(project_name)
         refdata = sc.read_h5ad(ref_path)
         querydata = sc.read_h5ad(query_path)
-        adata_combined = scvi_preprocessing(refdata, querydata, rm_mt, rm_ribo, rm_hb, use_hvg)
+        adata_combined = scvi_preprocessing(refdata, querydata, label_field, rm_mt, rm_ribo, rm_hb, use_hvg)
         cur_step = 'training'
         set_steps_status(observed_metadata, 'preprocess', StepStatus.FINISH)
         set_steps_status(observed_metadata, 'training', StepStatus.PROCESS, notify=True)
@@ -90,7 +90,7 @@ def scvi_annotation(observed_metadata):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-def scvi_preprocessing(adata_ref, adata_query, rm_mt, rm_ribo, rm_hb, use_hvg):
+def scvi_preprocessing(adata_ref, adata_query, field, rm_mt, rm_ribo, rm_hb, use_hvg):
     """
     scvi数据预处理与整合
     """
@@ -110,11 +110,22 @@ def scvi_preprocessing(adata_ref, adata_query, rm_mt, rm_ribo, rm_hb, use_hvg):
     )
     adata_ref = adata_ref_tmp
     adata_query = adata_query_tmp
+    adata_ref = filter_genes(adata_ref, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
+    adata_query = filter_genes(adata_query, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
+    
     common_genes = adata_ref.var_names.intersection(adata_query.var_names)
     adata_ref = adata_ref[:, common_genes].copy()
     adata_query = adata_query[:, common_genes].copy()
-    adata_ref = filter_genes(adata_ref, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
-    adata_query = filter_genes(adata_query, remove_mt=rm_mt, remove_ribo=rm_ribo, remove_hb=rm_hb).copy()
+
+    if use_hvg:
+        adata_marker = filter_marker_genes_adaptive(adata_ref, field)
+
+        if adata_marker is not None:
+            adata_ref = adata_marker
+            common_genes = adata_ref.var_names.intersection(adata_query.var_names)
+            adata_ref = adata_ref[:, common_genes].copy()
+            adata_query = adata_query[:, common_genes].copy()
+
     adata_ref.obs[BATCH_KEY] = "ref"
     adata_query.obs[BATCH_KEY] = "query"
 
@@ -126,7 +137,8 @@ def scvi_preprocessing(adata_ref, adata_query, rm_mt, rm_ribo, rm_hb, use_hvg):
         label=BATCH_KEY,
         keys=["ref", "query"]
     )
-    if use_hvg:
+    # 这里因界面修改为use_marker，代码逻辑需要调整为use_marker为False时才进行hvg筛选，为了避免修改数据库仍然使用use_hvg变量
+    if not use_hvg:
         sc.pp.highly_variable_genes(
             adata_combined,
             flavor="seurat_v3",
@@ -245,7 +257,6 @@ def plot_3d_scatter(querydata, x, y, z, label, marker_size:int=5, boarder_width:
     )
     return fig
 
-
 def annotation_with_scvi_latend(adata, label_field):
     """
     对查询数据进行注释
@@ -266,77 +277,211 @@ def annotation_with_scvi_latend(adata, label_field):
     adata_query.obs[label_field] = predicted_labels
     return adata_query
 
-def get_diffgene_heatmap(adata_ori, label_field):
+def get_diffgene_heatmap(adata_ori, label_field, top_n=5, min_logfc=0.25, min_pval=0.05):
     """
-    返回基因表达热图
+    计算差异表达基因并生成热图
     """
     import warnings
     warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
+    
     adata = adata_ori.copy()
-    cache_raw(adata)
-    adata.layers[DEGCOUNT_KEY] = adata.layers['counts'].copy()
-    sc.pp.normalize_total(adata, target_sum=1e4, layer=DEGCOUNT_KEY)
-    sc.pp.log1p(adata, layer=DEGCOUNT_KEY)
+    
+    if 'counts' in adata.layers:
+        adata.X = adata.layers['counts'].copy()
+    else:
+        print("Warning: 'counts' layer not found, using adata.X")
+    
+    sc.pp.normalize_total(adata, target_sum=1e4)
+    sc.pp.log1p(adata)
+    
     celltype_counts = adata.obs[label_field].value_counts()
     valid_celltypes = set(celltype_counts[celltype_counts >= 2].index.tolist())
     adata_filtered = adata[adata.obs[label_field].isin(valid_celltypes)].copy()
+    
+    if len(valid_celltypes) == 0:
+        raise ValueError("Error: No valid cell types with >= 2 cells")
+    
     sc.tl.rank_genes_groups(
         adata_filtered,
         groupby=label_field,
-        layer=DEGCOUNT_KEY, 
-        method='t-test',
-        n_genes=2000,
-        use_raw=False
+        method='wilcoxon',
+        use_raw=False,
+        key_added='markers',
+        n_genes=adata_filtered.shape[1]
     )
-    adata_ori.uns['rank_genes_groups'] = adata_filtered.uns['rank_genes_groups'].copy()
-    deg_results = adata_filtered.uns['rank_genes_groups']
-    celltypes = sorted(deg_results['names'].dtype.names)
-    genes = []
-    for ct in celltypes:
-        top3_genes = adata_filtered.uns['rank_genes_groups']['names'][ct][:3]
-        genes.extend(top3_genes)
-
-    def get_mean_expression(celltype, gene):
-        adtmp = adata_filtered[adata_filtered.obs[label_field] == celltype, gene]
-        mean_exp = np.mean(adtmp.layers[DEGCOUNT_KEY])
-        return mean_exp
-
-    heatmap_data = [[get_mean_expression(cell, gene) for cell in celltypes]for gene in genes]
-    def minmax_scale(row):
-        return (row - np.min(row)) / (np.max(row) - np.min(row))
     
-    minmax_data = np.apply_along_axis(minmax_scale, axis=1, arr=heatmap_data)
-
+    result_df = sc.get.rank_genes_groups_df(adata_filtered, group=None, key='markers')
+    
+    selected_genes = []
+    deg_info = {}
+    
+    for cell_type in adata_filtered.obs[label_field].cat.categories:
+        type_res = result_df[result_df['group'] == cell_type].copy()
+        
+        significant = type_res[
+            (type_res['pvals_adj'] < min_pval) & 
+            (type_res['logfoldchanges'] > min_logfc)
+        ]
+        
+        top_genes = significant.head(top_n)['names'].tolist()
+        selected_genes.extend(top_genes)
+        
+        deg_info[cell_type] = {
+            'n_significant': len(significant),
+            'n_selected': len(top_genes),
+            'genes': top_genes
+        }
+    
+    unique_genes = list(dict.fromkeys(selected_genes))
+    
+    valid_genes = [g for g in unique_genes if g in adata_filtered.var_names]
+    
+    if len(valid_genes) < 5:
+        raise ValueError(f"Too few valid genes ({len(valid_genes)}). Try relaxing thresholds.")
+    
+    celltypes = sorted(adata_filtered.obs[label_field].cat.categories.tolist())
+    
+    heatmap_data = []
+    for gene in valid_genes:
+        row = []
+        for cell_type in celltypes:
+            mask = (adata_filtered.obs[label_field] == cell_type)
+            exp_values = adata_filtered[mask, gene].X.toarray().flatten() if hasattr(adata_filtered[mask, gene].X, 'toarray') else adata_filtered[mask, gene].X.flatten()
+            mean_exp = np.mean(exp_values)
+            row.append(mean_exp)
+        heatmap_data.append(row)
+    
+    heatmap_data = np.array(heatmap_data)
+    
+    def minmax_scale_safe(row):
+        row_min = np.min(row)
+        row_max = np.max(row)
+        if row_max - row_min < 1e-10:
+            return np.zeros_like(row)
+        return (row - row_min) / (row_max - row_min)
+    
+    def zscore_scale_safe(row):
+        """
+        Z-score 标准化：z = (x - mean) / std
+        添加除零保护：如果标准差接近 0，返回全 0
+        """
+        row_mean = np.mean(row)
+        row_std = np.std(row)
+        if row_std < 1e-10:
+            return np.zeros_like(row)
+        return (row - row_mean) / row_std
+    
+    # minmax_data = np.apply_along_axis(minmax_scale_safe, axis=1, arr=heatmap_data)
+    zscore_data = np.apply_along_axis(zscore_scale_safe, axis=1, arr=heatmap_data)
+    
     fig = px.imshow(
-        minmax_data,
-        labels=dict(x="celltype", y="gene", color="mean_expression"),
+        zscore_data,
+        labels=dict(x="Cell Type", y="Gene", color="Z-score"),
         x=celltypes,
-        y=genes,
+        y=valid_genes,
         color_continuous_scale='Cividis',
         aspect='auto'
     )
+    
     fig.update_layout(
-        height=800,
-        width=800,
         autosize=True,
         title=dict(
-            text='Differential Gene Heatmap',
+            text='Differential Gene Expression Heatmap',
             x=0.5,
+            font=dict(size=16)
         ),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        coloraxis_colorbar_title_text='',
+        coloraxis_colorbar=dict(
+            title='Z-score',
+            titleside='right',
+            titlefont=dict(size=12)
+        ),
         xaxis_title=None,
         yaxis_title=None,
     )
+    
     fig.update_xaxes(
         tickangle=45, 
         tickfont=dict(size=10)
     )
+    
     fig.update_yaxes(
-        tickfont=dict(size=10)
+        tickfont=dict(size=9)
     )
     return fig
+
+# def get_diffgene_heatmap(adata_ori, label_field):
+#     """
+#     返回基因表达热图
+#     """
+#     import warnings
+#     warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
+#     adata = adata_ori.copy()
+#     cache_raw(adata)
+#     adata.layers[DEGCOUNT_KEY] = adata.layers['counts'].copy()
+#     sc.pp.normalize_total(adata, target_sum=1e4, layer=DEGCOUNT_KEY)
+#     sc.pp.log1p(adata, layer=DEGCOUNT_KEY)
+#     celltype_counts = adata.obs[label_field].value_counts()
+#     valid_celltypes = set(celltype_counts[celltype_counts >= 2].index.tolist())
+#     adata_filtered = adata[adata.obs[label_field].isin(valid_celltypes)].copy()
+#     sc.tl.rank_genes_groups(
+#         adata_filtered,
+#         groupby=label_field,
+#         layer=DEGCOUNT_KEY, 
+#         method='wilcoxon',
+#         n_genes=adata_filtered.shape[1],
+#         use_raw=False
+#     )
+#     adata_ori.uns['rank_genes_groups'] = adata_filtered.uns['rank_genes_groups'].copy()
+#     deg_results = adata_filtered.uns['rank_genes_groups']
+#     celltypes = sorted(deg_results['names'].dtype.names)
+#     genes = []
+#     for ct in celltypes:
+#         top3_genes = adata_filtered.uns['rank_genes_groups']['names'][ct][:3]
+#         genes.extend(top3_genes)
+
+#     def get_mean_expression(celltype, gene):
+#         adtmp = adata_filtered[adata_filtered.obs[label_field] == celltype, gene]
+#         mean_exp = np.mean(adtmp.layers[DEGCOUNT_KEY])
+#         return mean_exp
+
+#     heatmap_data = [[get_mean_expression(cell, gene) for cell in celltypes]for gene in genes]
+#     def minmax_scale(row):
+#         return (row - np.min(row)) / (np.max(row) - np.min(row))
+    
+#     minmax_data = np.apply_along_axis(minmax_scale, axis=1, arr=heatmap_data)
+
+#     fig = px.imshow(
+#         minmax_data,
+#         labels=dict(x="celltype", y="gene", color="mean_expression"),
+#         x=celltypes,
+#         y=genes,
+#         color_continuous_scale='Cividis',
+#         aspect='auto'
+#     )
+#     fig.update_layout(
+#         height=800,
+#         width=800,
+#         autosize=True,
+#         title=dict(
+#             text='Differential Gene Heatmap',
+#             x=0.5,
+#         ),
+#         paper_bgcolor='rgba(0,0,0,0)',
+#         plot_bgcolor='rgba(0,0,0,0)',
+#         coloraxis_colorbar_title_text='',
+#         xaxis_title=None,
+#         yaxis_title=None,
+#     )
+#     fig.update_xaxes(
+#         tickangle=45, 
+#         tickfont=dict(size=10)
+#     )
+#     fig.update_yaxes(
+#         tickfont=dict(size=10)
+#     )
+#     return fig
 
 def set_steps_status(observed_metadata, step, status, notify=False):
     """
@@ -380,3 +525,67 @@ def filter_genes(adata, remove_mt=True, remove_ribo=True, remove_hb=True):
         condition = condition & ~lower_var_names.contains("^hb[^(p)]")
     adata = adata[:, condition]
     return adata
+
+def filter_marker_genes_adaptive(
+    adata, 
+    field='celltype', 
+    min_logfc=0.25, 
+    min_pval=0.05,
+    max_markers_per_type=50,
+    min_markers_per_type=10,
+    min_cells_per_type=2
+):
+    """
+    自适应筛选 marker 基因的函数，基于统计显著性动态确定数量。
+    """
+    adata.obs[field] = adata.obs[field].astype('category')
+
+    celltype_counts = adata.obs[field].value_counts()
+    valid_celltypes = celltype_counts[celltype_counts >= min_cells_per_type].index.tolist()
+    if len(valid_celltypes) == 0:
+        raise ValueError(f"Error: No cell types with >= {min_cells_per_type} cells")
+    adata_filtered = adata[adata.obs[field].isin(valid_celltypes)].copy()
+    
+    adata_filtered.obs[field] = adata_filtered.obs[field].cat.remove_unused_categories()
+
+    adata_filtered.X = adata_filtered.layers['counts'].copy()
+    
+    sc.pp.normalize_total(adata_filtered, target_sum=1e4)
+    sc.pp.log1p(adata_filtered)
+    
+    sc.tl.rank_genes_groups(
+        adata_filtered, 
+        groupby=field, 
+        method='wilcoxon', 
+        use_raw=False,
+        key_added='markers',
+        n_genes=adata_filtered.shape[1]
+    )
+    
+    result_df = sc.get.rank_genes_groups_df(adata_filtered, group=None, key='markers')
+    selected_genes = set()
+    
+    for cell_type in adata_filtered.obs[field].cat.categories:
+        type_res = result_df[result_df['group'] == cell_type].copy()
+        
+        type_res = type_res.sort_values(by=['pvals_adj', 'logfoldchanges'], 
+                                         ascending=[True, False])
+        
+        significant = type_res[
+            (type_res['pvals_adj'] < min_pval) & 
+            (type_res['logfoldchanges'] > min_logfc)
+        ]
+        
+        n_selected = len(significant)
+        n_selected = max(min_markers_per_type, min(n_selected, max_markers_per_type))
+        
+        top_genes = significant.head(n_selected)['names'].tolist()
+        selected_genes.update(top_genes)
+    
+    valid_genes = [g for g in selected_genes if g in adata_filtered.var_names]
+    
+    if len(valid_genes) == 0:
+        return None
+    
+    adata_marker = adata_filtered[:, valid_genes].copy()
+    return adata_marker

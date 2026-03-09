@@ -136,7 +136,7 @@ def update_project_metadata(projectname, spot_size, border_width, border_color):
     z_min, z_max = annData.get_z_range(projectname)
     if z_min is not None and z_max is not None:
         set_props('ann-slider-slicer', dict(min=z_min, max=z_max, value=[z_min, z_max]))
-    set_props('ann-content-tabs', dict(activeKey=activeKey))
+    # set_props('ann-content-tabs', dict(activeKey=activeKey))
     set_props('ann-graph-heatmap', dict(figure=heatmapFig))
     set_props('ann-graph-result', dict(figure=resultFig))
     set_props('ann-annotation-steps', dict(steps=patch, percent=percent))
