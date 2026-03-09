@@ -61,6 +61,7 @@ def scvi_annotation(observed_metadata):
         query_index = querydata.obs.index
         querydata.obs[label_field] = ''
         querydata.obs.loc[query_index, label_field] = adata_result.obs.loc[query_index, label_field]
+        querydata.obs[label_field] = querydata.obs[label_field].astype('category')
         classes = len(set(querydata.obs[label_field].unique()))
         z_min = querydata.obs[z].min()
         z_max = querydata.obs[z].max()
@@ -372,12 +373,12 @@ def get_diffgene_heatmap(adata_ori, label_field, top_n=5, min_logfc=0.25, min_pv
             return np.zeros_like(row)
         return (row - row_mean) / row_std
     
-    # minmax_data = np.apply_along_axis(minmax_scale_safe, axis=1, arr=heatmap_data)
-    zscore_data = np.apply_along_axis(zscore_scale_safe, axis=1, arr=heatmap_data)
+    minmax_data = np.apply_along_axis(minmax_scale_safe, axis=1, arr=heatmap_data)
+    # zscore_data = np.apply_along_axis(zscore_scale_safe, axis=1, arr=heatmap_data)
     
     fig = px.imshow(
-        zscore_data,
-        labels=dict(x="Cell Type", y="Gene", color="Z-score"),
+        minmax_data,
+        labels=dict(x="Cell Type", y="Gene", color="GeneExp"),
         x=celltypes,
         y=valid_genes,
         color_continuous_scale='Cividis',
