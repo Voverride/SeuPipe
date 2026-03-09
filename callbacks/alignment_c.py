@@ -228,7 +228,7 @@ def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice
         return
     modifyName = alidata.is_project_modify(project)
     if modifyName:
-        set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
+        # set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
         return
     try:
         alidata.set_project_modify(project)

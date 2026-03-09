@@ -39,7 +39,10 @@ main_layout = html.Div([
     dcc.Store(id="key-pressed-events"),
     dcc.Store(id="userid"),
     dcc.Location(id='main-refresh', refresh=True),
-    WebSocket(url=f"ws://{get_local_ip()}:{setting.ws_port}", id="ws"),
+    WebSocket(
+        url=f"ws://{get_local_ip()}:{setting.ws_port}",
+        id="ws"
+    ),
     fac.AntdSpin(
         html.Div(id='main-loading-area'), 
         id='main-spin-area',

@@ -58,22 +58,7 @@ def get_image_base64(image_path):
     img = iio.imread(image_path)
     compressed_img, _ = compress_image(img)
     return convert_mtx_to_base64_image(compressed_img)
-def convert_mtx_to_base64_image(mtx):
-    """
-    将矩阵转换为 base64 编码的 PNG 图像
-    """
-    plt.figure(figsize=(10, 10))
-    plt.imshow(mtx, cmap='gray')
-    plt.axis('off')
-    plt.tight_layout(pad=0)
 
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png', bbox_inches='tight', pad_inches=0)
-    buffer.seek(0)
-    image_png = buffer.getvalue()
-    graph = base64.b64encode(image_png).decode('utf-8')
-    plt.close()
-    return f'data:image/png;base64,{graph}'
 def get_gem_on_stain_to_base64(stain_path, gem_path, alpha=0.5):
     """
     将 GEM 数据叠加到染色图像上，并返回 data:image/png;base64,... 格式的字符串

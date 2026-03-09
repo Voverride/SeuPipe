@@ -2,7 +2,7 @@ import os
 import imageio.v3 as iio
 import numpy as np
 import traceback
-from utils.commonfuc import write_json
+from utils.commonfuc import write_json, compress_image, write_pkl, convert_mtx_to_base64_image
 from dataManager.regionclip_d import clipData
 def clip_image(taskName, slicename, clipName, row_start, row_end, col_start, col_end):
     """
@@ -50,6 +50,12 @@ def clip_image(taskName, slicename, clipName, row_start, row_end, col_start, col
         clipped_gem['y'] = clipped_gem['y'] - mapped_col_start
 
         iio.imwrite(clipped_image_path, clipped_img)
+
+        stainfig_path = clipData.get_task_clipName_stainBase64_path(taskName, slicename, clipName)
+        compressed_stain, _ = compress_image(clipped_img)
+        stain_base64 = convert_mtx_to_base64_image(compressed_stain)
+        write_pkl(stain_base64, stainfig_path)
+
         clipped_gem.to_csv(clipped_gem_path, sep='\t', index=False)
 
         if clipped_gem.empty:
@@ -76,6 +82,11 @@ def clip_image(taskName, slicename, clipName, row_start, row_end, col_start, col
                 mtx = mtx.astype(np.uint8)
 
         iio.imwrite(clipped_gem_image_path, mtx, cmap='hot')
+        gemfig_path = clipData.get_task_clipName_gemBase64_path(taskName, slicename, clipName)
+        compressed_mtx, _ = compress_image(mtx)
+        gem_base64 = convert_mtx_to_base64_image(compressed_mtx)
+        write_pkl(gem_base64, gemfig_path)
+
     except Exception as e:
         observed_status['exception'] = traceback.format_exc()
     finally:

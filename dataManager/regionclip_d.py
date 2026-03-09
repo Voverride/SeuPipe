@@ -271,6 +271,39 @@ class RegionClipData:
             return None
         return stain_path
     
+    def get_task_clipName_figure_folder(self, taskName, clipName):
+        """
+        获取任务裁剪项目下图像目录
+        """
+        if not taskName or not clipName:
+            return None
+        clip_folder = self.get_task_clipName_folder(taskName, clipName)
+        clip_figure_folder = os.path.join(clip_folder, 'Figure')
+        check_path(clip_figure_folder)
+        return clip_figure_folder
+    
+    def get_task_clipName_stainBase64_path(self, taskName, sliceName, clipName):
+        """
+        获取任务裁剪项目下染色图像base64路径
+        """
+        if not taskName or not clipName:
+            return None
+        clip_fig_folder = self.get_task_clipName_figure_folder(taskName, clipName)
+        stainFigName = f'{taskName}_z{sliceName}_{clipName}_stainBase64.pkl'
+        stainfig_path = os.path.join(clip_fig_folder, stainFigName)
+        return stainfig_path
+    
+    def get_task_clipName_gemBase64_path(self, taskName, sliceName, clipName):
+        """
+        获取任务裁剪项目下基因信息base64路径
+        """
+        if not taskName or not clipName:
+            return None
+        clip_fig_folder = self.get_task_clipName_figure_folder(taskName, clipName)
+        gemFigName = f'{taskName}_z{sliceName}_{clipName}_gemBase64.pkl'
+        gemfig_path = os.path.join(clip_fig_folder, gemFigName)
+        return gemfig_path
+    
     def get_task_clipName_gem_folder(self, taskName, clipName):
         """
         获取任务裁剪项目下基因信息目录

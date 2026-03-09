@@ -1,6 +1,7 @@
 from controller.regionclip_ctl import *
 from dash import callback, Input, Output, State, no_update
 from pages.components.fileSelecter import fileSelecter
+from utils.commonfuc import read_pkl, write_pkl
 from websocket.message import ms
 
 @callback(
@@ -115,13 +116,23 @@ def update_clipped_images(slicename, clipName, taskName):
         stain_src = no_update
         set_props('clip-stain-image', dict(style={'visibility':'hidden'}))
     else:
-        stain_src = get_image_base64(stain_path)
+        stainBase64_path = clipData.get_task_clipName_stainBase64_path(taskName, slicename, clipName)
+        if not os.path.exists(stainBase64_path):
+            stain_src = get_image_base64(stain_path)
+            write_pkl(stain_src, stainBase64_path)
+        else:
+            stain_src = read_pkl(stainBase64_path)
         set_props('clip-stain-image', dict(style={'visibility':'visible'}))
     if gem_image_path is None:
         gem_src = no_update
         set_props('clip-gem-image', dict(style={'visibility':'hidden'}))
     else:
-        gem_src = get_image_base64(gem_image_path)
+        gemBase64_path = clipData.get_task_clipName_gemBase64_path(taskName, slicename, clipName)
+        if not os.path.exists(gemBase64_path):
+            gem_src = get_image_base64(gem_image_path)
+            write_pkl(gem_src, gemBase64_path)
+        else:
+            gem_src = read_pkl(gemBase64_path)
         set_props('clip-gem-image', dict(style={'visibility':'visible'}))
     return stain_src, gem_src
 

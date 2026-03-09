@@ -288,7 +288,6 @@ def start_alignment_project(projectname, model, device):
     thread = threading.Thread(target=run_ali_project, args=(model, device, observed_metadata))
     thread.start()
 
-
 def update_project_metadata(project, spotSize, borderWidth, borderColor, userTriggered=False):
     """
     更新项目元数据

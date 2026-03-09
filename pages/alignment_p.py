@@ -189,6 +189,14 @@ control_panel = html.Div(
     id='ali-control_panel',
 )
 
+# 测试代码
+# import pickle
+# with open('test/data/origion.pkl', 'rb') as f:
+#     origion = pickle.load(f)
+
+# with open('test/data/aligned.pkl', 'rb') as f:
+#     aligned = pickle.load(f)
+
 content_tabs = fac.AntdTabs(
     items=[
         {
@@ -293,6 +301,7 @@ content_tabs = fac.AntdTabs(
                     {
                         'children': fac.AntdCenter(
                             dcc.Graph(
+                                # figure=aligned,
                                 config={'displaylogo':False}, 
                                 id='ali-graph-left', 
                                 style={'height': '100%', 'width': '100%'},
@@ -306,6 +315,7 @@ content_tabs = fac.AntdTabs(
                     {
                         'children': fac.AntdCenter(
                             dcc.Graph(
+                                # figure=origion,
                                 figure=hiddenGraph,
                                 config={'displaylogo':False}, 
                                 id='ali-graph-right', 
@@ -313,6 +323,7 @@ content_tabs = fac.AntdTabs(
                             ),
                             style={'height': '100%', 'width': '100%'}
                         ),
+                        # 'size': '50%',
                         'collapsible': False,
                         'resizable': False,
                     }

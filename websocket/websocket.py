@@ -16,13 +16,13 @@ class WebSocket:
             host, port = get_local_ip(), setting.ws_port
             async with websockets.serve(
                 self.handleConnect, host, port,
-                compression=None,
-                open_timeout=30,
-                ping_interval=30,
-                ping_timeout=10,
-                close_timeout=5,
-                max_size=5 * 1024 * 1024,
-                max_queue=32
+                # compression=None,
+                # open_timeout=30,
+                # ping_interval=30,
+                # ping_timeout=10,
+                # close_timeout=5,
+                # max_size=5 * 1024 * 1024,
+                # max_queue=32
             ):
                 await asyncio.Future()
         asyncio.run(startWebSocketServer())

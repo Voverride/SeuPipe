@@ -24,6 +24,39 @@ import plotly.graph_objects as go
 import random
 import pickle
 import cv2
+import dill
+
+def convert_mtx_to_base64_image(mtx):
+    """
+    将矩阵转换为 base64 编码的 PNG 图像
+    """
+    plt.figure(figsize=(10, 10))
+    plt.imshow(mtx, cmap='gray')
+    plt.axis('off')
+    plt.tight_layout(pad=0)
+
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', pad_inches=0)
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    graph = base64.b64encode(image_png).decode('utf-8')
+    plt.close()
+    return f'data:image/png;base64,{graph}'
+
+def write_func(func, path):
+    """
+    将函数写入文件
+    """
+    with open(path, 'wb') as f:
+        dill.dump(func, f)
+
+def read_func(path):
+    """
+    从文件中读取函数
+    """
+    with open(path, 'rb') as f:
+        func = dill.load(f)
+    return func
 
 def get_mask_contour_figure(stain, mask, contour, title=None, showmask=False, showcontour=True, mask_opacity=0.7):
     """

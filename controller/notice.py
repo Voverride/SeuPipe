@@ -71,7 +71,7 @@ def global_error_handler(err:Exception)->None:
     }
     info = str(err)
     if 'Extra data' in info:
-        set_aside_notice('Network Error', 'Please try to refresh the page', 'error')
+        set_aside_notice('Network Error', 'Please try to refresh the page', 'error', duration=72000)
         return
     input = json.dumps(callback_context.triggered)
     trace = traceback.format_exc()
