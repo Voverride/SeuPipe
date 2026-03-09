@@ -59,6 +59,7 @@ def scvi_annotation(observed_metadata):
         label_field = observed_metadata['label']
         adata_result = annotation_with_scvi_latend(adata_combined, label_field)
         query_index = querydata.obs.index
+        querydata.obs[label_field] = ''
         querydata.obs.loc[query_index, label_field] = adata_result.obs.loc[query_index, label_field]
         classes = len(set(querydata.obs[label_field].unique()))
         z_min = querydata.obs[z].min()
