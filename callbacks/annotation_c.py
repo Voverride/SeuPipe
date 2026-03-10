@@ -25,7 +25,7 @@ def export_data(nc, project_name):
 
 @callback(
     Output('ann-graph-result', 'figure', allow_duplicate=True),
-    Input('ann-graph-result', 'relayoutData'),
+    Input('ann-store-relayout', 'data'),
     prevent_initial_call=True
 )
 def update_graph_relayout(relayoutData):

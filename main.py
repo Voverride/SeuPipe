@@ -90,6 +90,22 @@ app.clientside_callback(
 )
 
 app.clientside_callback(
+    """
+    function(relayoutData) {
+        if (window.annDebounceTimer) {
+            clearTimeout(window.annDebounceTimer);
+        }
+        window.annDebounceTimer = setTimeout(() => {
+            dash_clientside.set_props("ann-store-relayout", {data: relayoutData})
+        }, 100);
+    }
+    """,
+    Input('ann-graph-result', 'relayoutData'),
+    prevent_initial_call=True
+)
+
+
+app.clientside_callback(
     """(nClicks, collapsed) => {
         return [!collapsed, collapsed ? 'antd-arrow-left' : 'antd-arrow-right'];
     }""",

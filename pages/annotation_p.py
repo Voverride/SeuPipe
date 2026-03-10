@@ -41,6 +41,7 @@ new_project_modal = fac.AntdModal(
                         style={'backgroundColor':'#d0826c', 'width':'150px'}
                     ),
                     dcc.Store(id='ann-store-querydata', data=None),
+                    dcc.Store(id='ann-store-relayout', data=None),
                     fac.AntdTooltip(
                         fac.AntdSelect(
                             placeholder='x field',
