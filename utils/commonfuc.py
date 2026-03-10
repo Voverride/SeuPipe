@@ -29,18 +29,29 @@ import dill
 def convert_mtx_to_base64_image(mtx):
     """
     将矩阵转换为 base64 编码的 PNG 图像
+    输出严格正方形，图像居中，四周留白均匀且透明
     """
-    plt.figure(figsize=(10, 10))
-    plt.imshow(mtx, cmap='gray')
-    plt.axis('off')
-    plt.tight_layout(pad=0)
-
+    
+    height, width = mtx.shape[:2]
+    max_dim = max(height, width)
+    img_width_ratio = width / max_dim
+    img_height_ratio = height / max_dim
+    fig, ax = plt.subplots(figsize=(10, 10), dpi=100)
+    fig.patch.set_alpha(0)
+    ax.patch.set_alpha(0)
+    ax.imshow(mtx, cmap='gray', aspect='auto')
+    ax.axis('off')
+    left = (1 - img_width_ratio) / 2
+    bottom = (1 - img_height_ratio) / 2
+    ax.set_position([left, bottom, img_width_ratio, img_height_ratio])
     buffer = BytesIO()
-    plt.savefig(buffer, format='png', bbox_inches='tight', pad_inches=0)
+    plt.savefig(buffer, format='png', pad_inches=0, 
+                facecolor='none', edgecolor='none', dpi=100, 
+                transparent=True)
     buffer.seek(0)
     image_png = buffer.getvalue()
     graph = base64.b64encode(image_png).decode('utf-8')
-    plt.close()
+    plt.close(fig)
     return f'data:image/png;base64,{graph}'
 
 def write_func(func, path):
@@ -90,77 +101,159 @@ def get_current_date():
     formatted_time = now.strftime("%Y-%m-%d %H:%M")
     return formatted_time
 
-def compress_image(image, target_height=1024, target_width=1024):
+# def compress_image(image, target_height=1024, target_width=1024):
+#     """
+#     将单通道图像压缩到指定尺寸，并返回区域映射函数。
+
+#     参数:
+#         image (np.ndarray): 原始单通道图像，shape (H, W)
+#         target_height (int): 目标高度
+#         target_width (int): 目标宽度
+
+#     返回:
+#         compressed_img (np.ndarray): 压缩后的图像 (target_height, target_width)
+#         map_region_to_original (function): 
+#             输入:
+#                 top_left = (i1, j1)  # 压缩图中区域左上角（包含）
+#                 bottom_right = (i2, j2)  # 压缩图中区域右下角（包含）
+#             输出:
+#                 (orig_top_left, orig_bottom_right)
+#                 其中 orig_top_left = (orig_i1, orig_j1)
+#                       orig_bottom_right = (orig_i2, orig_j2)
+#                 所有坐标均为整数，且在原始图像范围内，闭区间（包含端点）
+#     """
+#     assert len(image.shape) == 2, "图像必须是单通道（2D）"
+#     orig_h, orig_w = image.shape
+
+#     if orig_h <= target_height and orig_w <= target_width:
+#         return image, lambda i1, j1, i2, j2: (i1, j1, i2, j2)
+#     compressed_img = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
+#     scale_h = orig_h / target_height
+#     scale_w = orig_w / target_width
+
+#     def map_region_to_original(i1, j1, i2, j2):
+#         """
+#         将压缩图中的闭区间矩形区域映射回原图的闭区间区域。
+
+#         参数:
+#             (i1, j1) —— 压缩图左上角，包含
+#             (i2, j2) —— 压缩图右下角，包含
+
+#         返回:
+#             orig_i1, orig_j1, orig_i2, orig_j2
+#             所有坐标为整数，闭区间，不越界。
+#         """
+#         # if not (0 <= i1 <= i2 < target_height and 0 <= j1 <= j2 < target_width):
+#         #     raise ValueError(
+#         #         f"无效区域：top_left=({i1},{j1}), bottom_right=({i2},{j2})，"
+#         #         f"图像尺寸为 {target_height}x{target_width}"
+#         #     )
+
+#         i1 = max(0, min(i1, target_height - 1))
+#         i2 = max(0, min(i2, target_height - 1))
+#         j1 = max(0, min(j1, target_width - 1))
+#         j2 = max(0, min(j2, target_width - 1))
+#         if i1 > i2:
+#             i1, i2 = i2, i1
+#         if j1 > j2:
+#             j1, j2 = j2, j1
+
+#         orig_i_start_f = i1 * scale_h
+#         orig_i_end_f   = (i2 + 1) * scale_h
+#         orig_j_start_f = j1 * scale_w
+#         orig_j_end_f   = (j2 + 1) * scale_w
+
+#         orig_i1 = int(np.floor(orig_i_start_f))
+#         orig_i2 = int(np.ceil(orig_i_end_f) - 1)
+#         orig_j1 = int(np.floor(orig_j_start_f))
+#         orig_j2 = int(np.ceil(orig_j_end_f) - 1)
+
+#         orig_i1 = max(0, orig_i1)
+#         orig_j1 = max(0, orig_j1)
+#         orig_i2 = min(orig_h - 1, orig_i2)
+#         orig_j2 = min(orig_w - 1, orig_j2)
+
+#         if orig_i1 > orig_i2:
+#             orig_i2 = orig_i1
+#         if orig_j1 > orig_j2:
+#             orig_j2 = orig_j1
+
+#         return orig_i1, orig_j1, orig_i2, orig_j2
+
+#     return compressed_img, map_region_to_original
+
+
+def compress_image(image, max_dimension=1024):
     """
-    将单通道图像压缩到指定尺寸，并返回区域映射函数。
+    将单通道图像等比例压缩，确保最长边不超过指定尺寸。
+    保持原始宽高比，不拉伸变形。
 
     参数:
         image (np.ndarray): 原始单通道图像，shape (H, W)
-        target_height (int): 目标高度
-        target_width (int): 目标宽度
+        max_dimension (int): 目标最大边长，默认 1024
 
     返回:
-        compressed_img (np.ndarray): 压缩后的图像 (target_height, target_width)
+        compressed_img (np.ndarray): 压缩后的图像
         map_region_to_original (function): 
-            输入:
-                top_left = (i1, j1)  # 压缩图中区域左上角（包含）
-                bottom_right = (i2, j2)  # 压缩图中区域右下角（包含）
-            输出:
-                (orig_top_left, orig_bottom_right)
-                其中 orig_top_left = (orig_i1, orig_j1)
-                      orig_bottom_right = (orig_i2, orig_j2)
-                所有坐标均为整数，且在原始图像范围内，闭区间（包含端点）
+            输入：压缩图中的闭区间矩形区域 (i1, j1, i2, j2)
+            输出：原图中的闭区间矩形区域 (orig_i1, orig_j1, orig_i2, orig_j2)
     """
+    import cv2
+    import numpy as np
+    
     assert len(image.shape) == 2, "图像必须是单通道（2D）"
     orig_h, orig_w = image.shape
-
-    if orig_h <= target_height and orig_w <= target_width:
+    
+    if orig_h <= max_dimension and orig_w <= max_dimension:
         return image, lambda i1, j1, i2, j2: (i1, j1, i2, j2)
+    
+    scale = max_dimension / max(orig_h, orig_w)
+    target_height = int(orig_h * scale)
+    target_width = int(orig_w * scale)
+    
     compressed_img = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_AREA)
-
+    
     scale_h = orig_h / target_height
     scale_w = orig_w / target_width
-
+    
     def map_region_to_original(i1, j1, i2, j2):
         """
         将压缩图中的闭区间矩形区域映射回原图的闭区间区域。
-
-        参数:
-            (i1, j1) —— 压缩图左上角，包含
-            (i2, j2) —— 压缩图右下角，包含
-
-        返回:
-            orig_i1, orig_j1, orig_i2, orig_j2
-            所有坐标为整数，闭区间，不越界。
+        如果输入范围越界，会自动裁剪到图像边界。
         """
-        if not (0 <= i1 <= i2 < target_height and 0 <= j1 <= j2 < target_width):
-            raise ValueError(
-                f"无效区域：top_left=({i1},{j1}), bottom_right=({i2},{j2})，"
-                f"图像尺寸为 {target_height}x{target_width}"
-            )
-
+        i1 = max(0, min(i1, target_height - 1))
+        i2 = max(0, min(i2, target_height - 1))
+        j1 = max(0, min(j1, target_width - 1))
+        j2 = max(0, min(j2, target_width - 1))
+        
+        if i1 > i2:
+            i1, i2 = i2, i1
+        if j1 > j2:
+            j1, j2 = j2, j1
+        
         orig_i_start_f = i1 * scale_h
         orig_i_end_f   = (i2 + 1) * scale_h
         orig_j_start_f = j1 * scale_w
         orig_j_end_f   = (j2 + 1) * scale_w
-
+        
         orig_i1 = int(np.floor(orig_i_start_f))
         orig_i2 = int(np.ceil(orig_i_end_f) - 1)
         orig_j1 = int(np.floor(orig_j_start_f))
         orig_j2 = int(np.ceil(orig_j_end_f) - 1)
-
+        
         orig_i1 = max(0, orig_i1)
         orig_j1 = max(0, orig_j1)
         orig_i2 = min(orig_h - 1, orig_i2)
         orig_j2 = min(orig_w - 1, orig_j2)
-
+        
         if orig_i1 > orig_i2:
             orig_i2 = orig_i1
         if orig_j1 > orig_j2:
             orig_j2 = orig_j1
-
+        
         return orig_i1, orig_j1, orig_i2, orig_j2
-
+    
     return compressed_img, map_region_to_original
 
 def write_pkl(obj, filepath):
