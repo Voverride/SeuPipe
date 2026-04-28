@@ -137,8 +137,8 @@ control_panel = html.Div(
                 fac.AntdSelect(
                     optionFilterMode='case-insensitive',
                     allowClear=False,
-                    value='paste1',
-                    options=['paste1', 'paste2'],
+                    value='paste2',
+                    options=['paste2', 'paste1'],
                     id='ali-select-model',
                     locale='en-us',
                     style={'width': '100%', 'marginBottom':'15px'},
@@ -188,14 +188,6 @@ control_panel = html.Div(
     ), 
     id='ali-control_panel',
 )
-
-# 测试代码
-# import pickle
-# with open('test/data/origion.pkl', 'rb') as f:
-#     origion = pickle.load(f)
-
-# with open('test/data/aligned.pkl', 'rb') as f:
-#     aligned = pickle.load(f)
 
 content_tabs = fac.AntdTabs(
     items=[

@@ -58,7 +58,7 @@ def paste1(observed_metadata, use_gpu=False, use_rep=None):
         cur_step = 'alignment'
         set_steps_status(observed_metadata, cur_step, StepStatus.PROCESS, notify=True)
         for i in range(len(slices)-1):
-            pis.append(pst.pairwise_align(slices[i], slices[i+1], use_gpu = use_gpu, backend=backend, use_rep=use_rep, gpu_verbose=False))
+            pis.append(pst.pairwise_align(slices[i], slices[i+1], alpha=0.3, use_gpu = use_gpu, backend=backend, use_rep=use_rep, gpu_verbose=False))
             percent = int((i+2)/len(slices)*100)
             set_steps_status(observed_metadata, 'percent', percent, notify=True)
         set_steps_status(observed_metadata, cur_step, StepStatus.FINISH)

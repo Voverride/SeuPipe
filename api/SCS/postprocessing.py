@@ -55,14 +55,11 @@ def read_gradient(file, adata, layer_name, patch_size, bin_size, dia_estimate):
             else:
                 class_prior = class_prior / np.sum(class_prior)
             class_prior = class_prior / np.sum(class_prior)
-            #print(class_prior)
             class_logit = [float(logit) for logit in class_logit.split(":")]
             class_p = np.exp(class_logit) / sum(np.exp(class_logit))
-            #print('class_p_ori', class_p)
             for k in range(class_num):
                 class_p[k] = class_p[k] / class_prior_ori[k] * class_prior[k]
             class_p = class_p / np.sum(class_p)
-            #print('class_p', class_p)
             cla = np.argmax(class_p)
             cx, cy = class2dir[cla]
             dx[int(x), int(y)] = cx
@@ -365,6 +362,7 @@ def remove_small_cells(label_mat):
                 label_mat_new[i, j] = label_mat[i, j]
     return label_mat_new
 
+
 def detect_cycle(Trajectory, points):
     # initialize trajectory length
     length = 0
@@ -492,7 +490,7 @@ def postprocess(project_path, layer_name, startx, starty, patchsize, bin_size, d
     idx = np.where(merged == 0)
     merged = merged % 9 + 1
     merged[idx] = 0
-    # plt.imshow(merged, alpha=0.6, cmap='tab10')
-    # plt.imshow(edges, alpha=0.2, cmap='Greys')
+    plt.imshow(merged, alpha=0.6, cmap='tab10')
+    plt.imshow(edges, alpha=0.2, cmap='Greys')
     q = ax.quiver(dy * mask * 10, - dx * mask * 10, intensity, scale=5, width=0.2, units='x')
     plt.savefig(figmask_dir+'/cell_masks_' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.png')

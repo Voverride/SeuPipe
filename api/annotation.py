@@ -259,14 +259,59 @@ def plot_3d_scatter(querydata, x, y, z, label, marker_size:int=5, boarder_width:
     )
     return fig
 
-def annotation_with_scvi_latend(adata, label_field):
+# def annotation_with_scvi_latend(adata, label_field):
+#     """
+#     对查询数据进行注释
+#     """
+#     latent_ref = adata[adata.obs[BATCH_KEY] == 'ref'].obsm["X_scVI"]
+#     labels_ref = adata[adata.obs[BATCH_KEY] == 'ref'].obs[label_field]
+#     latent_query = adata[adata.obs[BATCH_KEY] == 'query'].obsm["X_scVI"]
+#     adata_query = adata[adata.obs[BATCH_KEY] == 'query'].copy()
+#     estimators = [
+#         ("knn", KNeighborsClassifier(n_neighbors=15, weights="distance", metric="cosine")),
+#         ("svm", SVC(probability=True, class_weight="balanced")),
+#         ("rf", RandomForestClassifier(n_estimators=200, max_depth=20)),
+#         ("mlp", MLPClassifier(hidden_layer_sizes=(128, 64), activation="relu", alpha=0.001, batch_size=128, early_stopping=True))
+#     ]
+#     ensemble = VotingClassifier(estimators, voting="soft")
+#     ensemble.fit(latent_ref, labels_ref)
+#     predicted_labels = ensemble.predict(latent_query)
+#     adata_query.obs[label_field] = predicted_labels
+#     return adata_query
+
+def annotation_with_scvi_latend(adata, label_field, confidence_threshold=0.5):
     """
-    对查询数据进行注释
+    对查询数据进行注释，支持置信度阈值过滤
+    
+    Parameters:
+    -----------
+    adata : AnnData
+        包含参考和查询数据的组合对象
+    label_field : str
+        细胞类型注释字段名
+    confidence_threshold : float, default=0.7
+        置信度阈值，预测概率低于此值的细胞将被标记为不确定
+        
+    Returns:
+    --------
+    adata_query : AnnData
+        注释后的查询数据，包含:
+        - obs[label_field]: 预测的细胞类型（低置信度标记为 Uncertain_<label_field>）
+        - obs[f'{label_field}_confidence']: 预测置信度（最大概率，0-1）
+        - obs[f'{label_field}_is_confident']: 布尔值，是否达到置信度阈值
+        - obs[f'{label_field}_top2_proba']: 前两类概率差值，反映分类边界清晰度
     """
-    latent_ref = adata[adata.obs[BATCH_KEY] == 'ref'].obsm["X_scVI"]
-    labels_ref = adata[adata.obs[BATCH_KEY] == 'ref'].obs[label_field]
-    latent_query = adata[adata.obs[BATCH_KEY] == 'query'].obsm["X_scVI"]
-    adata_query = adata[adata.obs[BATCH_KEY] == 'query'].copy()
+    # 提取参考数据和查询数据的潜在表示
+    mask_ref = adata.obs[BATCH_KEY] == 'ref'
+    mask_query = adata.obs[BATCH_KEY] == 'query'
+    
+    latent_ref = adata[mask_ref].obsm["X_scVI"]
+    labels_ref = adata[mask_ref].obs[label_field].values
+    latent_query = adata[mask_query].obsm["X_scVI"]
+    
+    adata_query = adata[mask_query].copy()
+    
+    # 定义集成分类器（保持原有配置）
     estimators = [
         ("knn", KNeighborsClassifier(n_neighbors=15, weights="distance", metric="cosine")),
         ("svm", SVC(probability=True, class_weight="balanced")),
@@ -274,9 +319,39 @@ def annotation_with_scvi_latend(adata, label_field):
         ("mlp", MLPClassifier(hidden_layer_sizes=(128, 64), activation="relu", alpha=0.001, batch_size=128, early_stopping=True))
     ]
     ensemble = VotingClassifier(estimators, voting="soft")
+    
+    # 训练模型
     ensemble.fit(latent_ref, labels_ref)
-    predicted_labels = ensemble.predict(latent_query)
-    adata_query.obs[label_field] = predicted_labels
+    
+    # 🔑 核心修改：获取预测概率而非仅预测标签
+    predicted_proba = ensemble.predict_proba(latent_query)
+    predicted_labels = ensemble.classes_[np.argmax(predicted_proba, axis=1)]
+    
+    # 计算置信度指标
+    max_proba = np.max(predicted_proba, axis=1)  # 最大类别概率（主置信度）
+    sorted_proba = np.sort(predicted_proba, axis=1)
+    top2_diff = sorted_proba[:, -1] - sorted_proba[:, -2]  # 前两类概率差值（边界清晰度）
+    
+    # 🔑 添加置信度相关字段
+    confidence_col = f'{label_field}_confidence'
+    confident_col = f'{label_field}_is_confident'
+    top2_col = f'{label_field}_top2_diff'
+    uncertain_label = f'Uncertain'  # 统一标记为"Uncertain"
+    
+    adata_query.obs[confidence_col] = max_proba
+    adata_query.obs[confident_col] = max_proba >= confidence_threshold
+    adata_query.obs[top2_col] = top2_diff
+    
+    # 🔑 根据置信度阈值设置最终注释
+    final_labels = predicted_labels.copy()
+    low_conf_mask = max_proba < confidence_threshold
+    final_labels[low_conf_mask] = uncertain_label
+    adata_query.obs[label_field] = final_labels
+    
+    # 确保注释列为分类类型，并保留原始预测供追溯
+    adata_query.obs[label_field] = adata_query.obs[label_field].astype('category')
+    adata_query.obs[f'{label_field}_raw_pred'] = predicted_labels  # 保留原始预测
+    
     return adata_query
 
 def get_diffgene_heatmap(adata_ori, label_field, top_n=3, min_logfc=0.25, min_pval=0.05):

@@ -7,6 +7,7 @@ import gc
 from tensorflow.keras.layers.experimental import preprocessing
 import os
 import anndata as ad
+import math
 
 def dir_to_class(y_dir, class_num):
     y_dir_class = []
@@ -87,7 +88,7 @@ def create_transformer_classifier(class_num, input_shape, input_position_shape, 
     model = keras.Model(inputs=[inputs, inputs_positions], outputs=[pos, binary])
     return model
 
-def run_experiment(project_path, startx, starty, patchsize, model, x_train, x_train_pos, x_train_, x_train_pos_, y_train, y_train_, y_binary_train, x_test, x_test_pos, x_validation, x_validation_pos, y_validation, y_binary_validation, learning_rate, weight_decay, batch_size, num_epochs):
+def run_experiment(project_path, startx, starty, patchsize, model, x_train, x_train_pos, x_train_, x_train_pos_, y_train, y_train_, y_binary_train, x_test, x_test_pos, x_validation, x_validation_pos, y_validation, y_binary_validation, learning_rate, weight_decay, batch_size, num_epochs, early_stop_patience=15):
     tmp_dir = os.path.join(project_path, 'tmp')
     result_dir = os.path.join(project_path, 'result')
     optimizer = tfa.optimizers.AdamW(
@@ -127,6 +128,28 @@ def run_experiment(project_path, startx, starty, patchsize, model, x_train, x_tr
     #print(y_train)
     #print(y_binary_train)
     #print(len(x_validation[np.where(y_binary_validation == 1)]))
+
+    # ======================================早停机制======================================
+    # 🔽 新增 2：早停机制回调 (Early Stopping)
+    early_stop_callback = keras.callbacks.EarlyStopping(
+        monitor='val_loss',          # 监控验证集损失更稳定
+        patience=early_stop_patience,# 连续15轮不下降则终止
+        restore_best_weights=True,   # 自动回滚至验证损失最低的权重
+        verbose=1
+    )
+    # 🔽 新增 3：余弦学习率衰减回调 (Cosine Annealing)
+    def cosine_lr_schedule(epoch):
+        progress = epoch / num_epochs
+        return float(0.5 * learning_rate * (1 + math.cos(math.pi * progress)))
+        
+    lr_scheduler_callback = keras.callbacks.LearningRateScheduler(cosine_lr_schedule, verbose=1)
+
+    # 🔗 合并回调列表
+    combined_callbacks = [checkpoint_callback, early_stop_callback, lr_scheduler_callback]
+    
+    print(f"🚀 启动训练: Epochs={num_epochs} | EarlyStop Patience={early_stop_patience} | LR Schedule=Cosine")
+    
+    # 替换原有的 model.fit
     model.fit(
         x=[x_train, x_train_pos],
         y=[y_train, y_binary_train],
@@ -134,8 +157,21 @@ def run_experiment(project_path, startx, starty, patchsize, model, x_train, x_tr
         epochs=num_epochs,
         validation_split=0.0,
         validation_data=([x_validation[np.where(y_binary_validation == 1)], x_validation_pos[np.where(y_binary_validation == 1)]], [y_validation[np.where(y_binary_validation == 1)], y_binary_validation[np.where(y_binary_validation == 1)]]),
-        callbacks=[checkpoint_callback],
+        callbacks=combined_callbacks  # ⚠️ 重点：替换原 callbacks=[checkpoint_callback]
     )
+
+    # ======================================早停机制END======================================
+
+
+    # model.fit(
+    #     x=[x_train, x_train_pos],
+    #     y=[y_train, y_binary_train],
+    #     batch_size=batch_size,
+    #     epochs=num_epochs,
+    #     validation_split=0.0,
+    #     validation_data=([x_validation[np.where(y_binary_validation == 1)], x_validation_pos[np.where(y_binary_validation == 1)]], [y_validation[np.where(y_binary_validation == 1)], y_binary_validation[np.where(y_binary_validation == 1)]]),
+    #     callbacks=[checkpoint_callback],
+    # )
 
     print('Inference on all the spots...')
     model.load_weights(checkpoint_filepath)
@@ -195,7 +231,7 @@ def train(project_path, startx, starty, patchsize, epochs, val_ratio):
     x_test_pos = np.load(tmp_dir+'/x_test_pos_' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.npz')
     x_test_pos = x_test_pos['x_test_pos'].astype(np.int32)
     class_num = 16
-
+    
     x_train_select = []
     x_validation_select = []
     adata = ad.read_h5ad(tmp_dir+'/spots' + startx + ':' + starty + ':' + patchsize + ':' + patchsize + '.h5ad')

@@ -2,6 +2,7 @@ from controller.auth import *
 from setting import setting
 from dash import set_props, Patch
 import json
+from dataManager.coordinate_d import get_coordinate, get_initialfig
 
 async def serverSendUpdateManualAdjustStatus(key, websocket, ws, ms, **kwargs):
     """
@@ -29,9 +30,19 @@ def clientParseUpdateManualAdjustStatus(message, websocket, ws, ms, **kwargs):
     username = message.get('username', None)
     if operations is not None:
         patch = Patch()
-        for idx, op in operations.items():
-            patch['data'][int(idx)]['x'] = op['x']
-            patch['data'][int(idx)]['y'] = op['y']
+        project = operations.get('project', None)
+        x = operations.get('xfield', None)
+        y = operations.get('yfield', None)
+        sliceidx = operations.get('sliceidx', [])
+        initFig = get_initialfig(project)
+        coordinate = get_coordinate(project)
+        for idx in sliceidx:
+            obsIndex = initFig['data'][idx]['customdata'].flatten()
+            coords = coordinate.loc[obsIndex, [x, y]]
+            x_coords = coords[x].tolist()
+            y_coords = coords[y].tolist()
+            patch['data'][int(idx)]['x'] = x_coords
+            patch['data'][int(idx)]['y'] = y_coords
         set_props('ali-graph-left', dict(figure=patch))
         if username is not None:
             set_props('ali-live-username', dict(children=username))

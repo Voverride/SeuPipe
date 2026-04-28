@@ -149,19 +149,21 @@ def get_transformed_coord(project, transMtx, slices):
     metadata = alidata.get_project_info(project)
     x = metadata['x']
     y = metadata['y']
-    z = metadata['z']
     coordinate = alidata.get_coordinate(project)
     operations = dict()
+    operations['project'] = project
+    operations['xfield'] = x
+    operations['yfield'] = y
+    sliceidx = []
     for slice in slices:
         idx = alidata.get_slice_index(project, slice)
-        obsIndex = coordinate[coordinate[z]==slice].index
+        initFig = alidata.get_initialfig(project)
+        obsIndex = initFig['data'][idx]['customdata'].flatten()
         points_ori = np.array(coordinate.loc[obsIndex, [x, y]])
         points_new = transform_points(points_ori,transMtx)
         coordinate.loc[obsIndex, [x, y]] = points_new
-        operations[idx] = {
-            'x': list(points_new[:, 0]),
-            'y': list(points_new[:, 1]),
-        }
+        sliceidx.append(idx)
+    operations['sliceidx'] = sliceidx
     alidata.update_manual_adjust_status(project, operations)
 
 def transform_points(points:np.ndarray, coordTransMtx:list)->np.ndarray:

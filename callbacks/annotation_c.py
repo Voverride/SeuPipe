@@ -140,6 +140,9 @@ def start_project(nc, projectname):
         if not projectname:
             set_head_notice('Please Select Project Name', type='warning')
             return
+        if annData.is_running(projectname):
+            set_head_notice(f'{projectname} is running, please wait...!', type='warning')
+            return
         start_ann_project(projectname)
 
 @callback(

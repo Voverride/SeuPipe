@@ -160,6 +160,9 @@ def start_clip(nc, relayoutData, taskName, slicename, clipName):
     if not clipName:
         set_head_notice('Please select a clip name first!', type='warning')
         return
+    if clipData.has_running_task(taskName, slicename, clipName):
+        set_head_notice(f'{taskName} is running, please wait...!', type='warning')
+        return
     row_start = int(relayoutData.get('yaxis.range[1]', 0))
     row_end = int(relayoutData.get('yaxis.range[0]', 0))
     col_start = int(relayoutData.get('xaxis.range[0]', 0))

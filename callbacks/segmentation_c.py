@@ -39,6 +39,9 @@ def start_segment_project(nc, projectname):
     """
     if nc and verify_modify_permission():
         if projectname:
+            if segData.has_running_project(projectname):
+                set_head_notice(f'{projectname} is running, please wait...!', type='warning')
+                return
             start_segmentation_project(projectname)
         else:
             set_head_notice('Please select a project to start !', type='warning')

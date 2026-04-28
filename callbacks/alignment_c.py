@@ -7,6 +7,29 @@ from controller.auth import verify_modify_permission
 import plotly.express as px
 import pandas as pd
 
+# 测试代码-------start
+# import pickle
+# with open('test/data/origion.pkl', 'rb') as f:
+#     origion = pickle.load(f)
+
+# with open('test/data/aligned.pkl', 'rb') as f:
+#     aligned = pickle.load(f)
+
+# @callback(
+#     Input('ali-button-manualAdjust', 'nClicks')
+# )
+# def test(nc):
+#     if nc:
+#         print('nc')
+#         set_props('ali-graph-right', dict(figure=origion))
+#         set_props('ali-graph-left', dict(figure=aligned))
+#         patch = Patch()
+#         patch[0]['size'] = '50%'
+#         patch[1]['size'] = '50%'
+#         set_props('ali-splitter-figure', dict(items=patch))
+# 测试代码-------end
+
+
 hiddenDf = pd.DataFrame({
     'x': [5],
     'y': [3],
@@ -218,8 +241,9 @@ def export_data(nc, project_name):
     State('ma-inputNum-rotationAngle', 'value'),
     State('ali-select-project', 'value'),
     State('ma-table-SyncSlices', 'selectedRowKeys'),
+    State('main-title-username', 'children'),
 )
-def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice, stepSize, rotationAngle, project, selectedRowKeys):
+def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice, stepSize, rotationAngle, project, selectedRowKeys, username): 
     """
     根据方向按钮调整切片位置
     """
@@ -227,8 +251,8 @@ def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice
         set_head_notice(f'Project {project} is running, please wait !', type='warning')
         return
     modifyName = alidata.is_project_modify(project)
-    if modifyName:
-        # set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
+    if modifyName and modifyName!=username:
+        set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
         return
     try:
         alidata.set_project_modify(project)
@@ -239,10 +263,10 @@ def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice
         if not permission:
             set_head_notice(f'permission denied !', type='warning')
             return
-        elif not actSlice:
+        elif actSlice is None:
             set_head_notice(f'The active slice cannot be empty !', type='warning')
             return
-        elif not refSlice:
+        elif refSlice is None:
             set_head_notice(f'The reference slice cannot be empty !', type='warning')
             return
         elif not stepSize:
@@ -284,8 +308,9 @@ def move_slice(up, down, left, right, clockwise, unclockwise, actSlice, refSlice
     State('ali-select-project', 'value'),
     State('ma-table-SyncSlices', 'selectedRowKeys'),
     State('gs-drawer-manual', 'visible'),
+    State('main-title-username', 'children'),
 )
-def detect_pressed_key(keyboard, actSlice, refSlice, stepSize, rotationAngle, project, selectedRowKeys, visible):
+def detect_pressed_key(keyboard, actSlice, refSlice, stepSize, rotationAngle, project, selectedRowKeys, visible, username):
     """
     绑定键盘事件调整切片
     37 : left
@@ -303,14 +328,14 @@ def detect_pressed_key(keyboard, actSlice, refSlice, stepSize, rotationAngle, pr
         set_head_notice(f'Project {project} is running, please wait !', type='warning')
         return
     modifyName = alidata.is_project_modify(project)
-    if modifyName:
+    if modifyName and modifyName!=username:
         set_head_notice(f'{modifyName} is in operation, please wait !', type='warning')
         return
     try:
         alidata.set_project_modify(project)
         keyCode = int(keyboard) if keyboard.isdigit() else 0
         detectedKeys = {37, 38, 39, 40, 1037, 1038, 1039, 1040}
-        if not actSlice or not refSlice or not stepSize or not rotationAngle or keyCode not in detectedKeys:
+        if actSlice is None or refSlice is None or not stepSize or not rotationAngle or keyCode not in detectedKeys:
             raise PreventUpdate
         permission = verify_modify_permission()
         if not permission:
@@ -402,7 +427,6 @@ def update_selected_SyncSlices(pickAbove, pickBelow, activeSlice, selectedRowKey
                 selectedRowKeys.append(rowkey)
     set_props('ma-table-SyncSlices', dict(selectedRowKeys=selectedRowKeys))
 
-
 @callback(
     Input('ali-store-leftLayout', 'data'),
     State('ali-icon-add-contrast', 'icon'),
@@ -421,47 +445,11 @@ def update_right_relayout(aliLayout, icon, figureScale):
 
     if icon=='antd-plus':
         return
-
+    
     oriScale = figureScale.get('initScale', 1)
     aliScale = figureScale.get('resultScale', 1)
-
     patch = Patch()
-    
-    if 'scene.camera' in aliLayout:
-        patch['layout']['scene']['camera']['eye'] = aliLayout['scene.camera']['eye']
-    if 'scene.aspectratio' in aliLayout:
-        factor = oriScale/aliScale
-        patch['layout']['scene']['aspectmode'] = 'manual'
-        aspectratio = aliLayout['scene.aspectratio'].copy()
-        aspectratio['x']*=factor
-        aspectratio['y']*=factor
-        patch['layout']['scene']['aspectratio'] = aspectratio
-    set_props('ali-graph-right', dict(figure=patch))
 
-@callback(
-    Input('ali-store-leftLayout', 'data'),
-    State('ali-icon-add-contrast', 'icon'),
-    State('ali-store-figureScale', 'data'),
-)
-def update_right_relayout(aliLayout, icon, figureScale):
-    """
-    同步右图状态
-    """
-    if aliLayout is None:
-        return
-    
-    patchAli = Patch()
-    update_relayoutfig(patchAli, aliLayout)
-    set_props('ali-graph-left', dict(figure=patchAli))
-
-    if icon=='antd-plus':
-        return
-
-    oriScale = figureScale.get('initScale', 1)
-    aliScale = figureScale.get('resultScale', 1)
-
-    patch = Patch()
-    
     if 'scene.camera' in aliLayout:
         patch['layout']['scene']['camera']['eye'] = aliLayout['scene.camera']['eye']
     if 'scene.aspectratio' in aliLayout:
@@ -562,7 +550,7 @@ def reference_slice_change(slice, color, icon, project, actSlice, colorMode, col
     """
     更新参考切片显示配置
     """
-    if slice:
+    if slice is not None:
         update_reference_slice(project, slice, actSlice, color, icon, colorMode, colorField, colorGene)
 
 @callback(
@@ -584,7 +572,7 @@ def active_slice_change(slice, color, icon, project, refSlice, autoPickAbove, au
     """
     tid = ctx.triggered_id
     if tid=='ma-selecter-activeSlice':
-        if not slice:
+        if slice is None:
             selectedRowKeys = []
         else:
             idx = alidata.get_syncslice_index(project, float(slice))
@@ -599,7 +587,7 @@ def active_slice_change(slice, color, icon, project, refSlice, autoPickAbove, au
                     selectedRowKeys.append(rowkey)
         set_props('ma-table-SyncSlices', dict(selectedRowKeys=selectedRowKeys))
 
-    if slice:
+    if slice is not None:
         update_active_slice(project, slice, refSlice, color, icon, colorMode, colorField, colorGene)
 
 @callback(
@@ -746,6 +734,9 @@ def start_project(nc, projectname, model, device):
     if nc and verify_modify_permission():
         if not projectname:
             set_head_notice('Please Select One Project', type='warning')
+            return
+        if alidata.is_running(projectname):
+            set_head_notice(f'{projectname} is running, please wait...!', type='warning')
             return
         start_alignment_project(projectname, model, device)
 

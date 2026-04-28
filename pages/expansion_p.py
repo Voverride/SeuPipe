@@ -14,14 +14,14 @@ new_task_modal = fac.AntdModal(
                     fac.AntdTooltip(
                         fac.AntdSelect(
                             id='expandtask-select-taskname',
-                            placeholder='Select Task',
+                            placeholder='Select Project',
                             debounceWait=300,
                             locale='en-us',
                             allowClear=False,
                             style={'width':512}
                         ),
                         id='expandtask-select-taskname-tooltip',
-                        title=fac.AntdText('Select Segmentation Task'),
+                        title=fac.AntdText('Select Segmentation Project'),
                         color='white'
                     ),
                     fac.AntdButton(
@@ -141,7 +141,7 @@ new_task_modal = fac.AntdModal(
         style={'width':'100%'},
     ),
     id='expand-modal-newtask', 
-    title='Create New Task',
+    title='Create New Project',
     mask=False,
     width=700,
     maskClosable=False,
@@ -156,7 +156,7 @@ control_panel = html.Div(
                 dcc.Interval(id="init-restore-expansion", interval=1, max_intervals=1),
                 new_task_modal,
                 fac.AntdButton(
-                    'Create New Task', 
+                    'Create New Project', 
                     type='primary',
                     id='expansion-button-newtask',
                     icon=fac.AntdIcon(icon='antd-plus'),
@@ -166,7 +166,7 @@ control_panel = html.Div(
                 fac.AntdTooltip(
                     fac.AntdSelect(
                         id='expand-select-taskname',
-                        placeholder='Select Task',
+                        placeholder='Select Project',
                         debounceWait=300,
                         locale='en-us',
                         allowClear=False,
@@ -174,7 +174,7 @@ control_panel = html.Div(
                     ),
                     id='expand-select-taskname-tooltip',
                     open=False,
-                    title=fac.AntdText('Select Task'), 
+                    title=fac.AntdText('Select Project'), 
                     color='white'
                 ),
                 dcc.Store(id='expand-store-taskname', storage_type='local'),
@@ -195,7 +195,7 @@ content_panel = html.Div(
             fac.AntdSpace(
                 [
                     fac.AntdButton(
-                        'Start Task', 
+                        'Start Project', 
                         type='primary',
                         id='exp-start-task',
                         icon=fac.AntdIcon(icon='antd-carry-out'),
@@ -203,7 +203,7 @@ content_panel = html.Div(
                     ),
                     fac.AntdPopconfirm(
                         fac.AntdButton(
-                            'Delete Task', 
+                            'Delete Project', 
                             id='exp-delete-task',
                             type='primary',
                             icon=fac.AntdIcon(icon='antd-delete'),

@@ -35,7 +35,6 @@ def run_scs(taskName):
             expansion_mask = process_cell_masks(result_folder, rows, cols)
             adata.layers['expansion_mask'] = expansion_mask
             mask_fig, contour_fig = generate_cell_masks_rgba(expansion_mask)
-
             expansion_fig = get_mask_contour_figure(adata.layers['stain'], mask_fig, contour_fig)
             expansion_path = maskData.get_expansion_path(taskName, z_index)
             write_pkl(expansion_fig, expansion_path)

@@ -101,89 +101,6 @@ def get_current_date():
     formatted_time = now.strftime("%Y-%m-%d %H:%M")
     return formatted_time
 
-# def compress_image(image, target_height=1024, target_width=1024):
-#     """
-#     将单通道图像压缩到指定尺寸，并返回区域映射函数。
-
-#     参数:
-#         image (np.ndarray): 原始单通道图像，shape (H, W)
-#         target_height (int): 目标高度
-#         target_width (int): 目标宽度
-
-#     返回:
-#         compressed_img (np.ndarray): 压缩后的图像 (target_height, target_width)
-#         map_region_to_original (function): 
-#             输入:
-#                 top_left = (i1, j1)  # 压缩图中区域左上角（包含）
-#                 bottom_right = (i2, j2)  # 压缩图中区域右下角（包含）
-#             输出:
-#                 (orig_top_left, orig_bottom_right)
-#                 其中 orig_top_left = (orig_i1, orig_j1)
-#                       orig_bottom_right = (orig_i2, orig_j2)
-#                 所有坐标均为整数，且在原始图像范围内，闭区间（包含端点）
-#     """
-#     assert len(image.shape) == 2, "图像必须是单通道（2D）"
-#     orig_h, orig_w = image.shape
-
-#     if orig_h <= target_height and orig_w <= target_width:
-#         return image, lambda i1, j1, i2, j2: (i1, j1, i2, j2)
-#     compressed_img = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_AREA)
-
-#     scale_h = orig_h / target_height
-#     scale_w = orig_w / target_width
-
-#     def map_region_to_original(i1, j1, i2, j2):
-#         """
-#         将压缩图中的闭区间矩形区域映射回原图的闭区间区域。
-
-#         参数:
-#             (i1, j1) —— 压缩图左上角，包含
-#             (i2, j2) —— 压缩图右下角，包含
-
-#         返回:
-#             orig_i1, orig_j1, orig_i2, orig_j2
-#             所有坐标为整数，闭区间，不越界。
-#         """
-#         # if not (0 <= i1 <= i2 < target_height and 0 <= j1 <= j2 < target_width):
-#         #     raise ValueError(
-#         #         f"无效区域：top_left=({i1},{j1}), bottom_right=({i2},{j2})，"
-#         #         f"图像尺寸为 {target_height}x{target_width}"
-#         #     )
-
-#         i1 = max(0, min(i1, target_height - 1))
-#         i2 = max(0, min(i2, target_height - 1))
-#         j1 = max(0, min(j1, target_width - 1))
-#         j2 = max(0, min(j2, target_width - 1))
-#         if i1 > i2:
-#             i1, i2 = i2, i1
-#         if j1 > j2:
-#             j1, j2 = j2, j1
-
-#         orig_i_start_f = i1 * scale_h
-#         orig_i_end_f   = (i2 + 1) * scale_h
-#         orig_j_start_f = j1 * scale_w
-#         orig_j_end_f   = (j2 + 1) * scale_w
-
-#         orig_i1 = int(np.floor(orig_i_start_f))
-#         orig_i2 = int(np.ceil(orig_i_end_f) - 1)
-#         orig_j1 = int(np.floor(orig_j_start_f))
-#         orig_j2 = int(np.ceil(orig_j_end_f) - 1)
-
-#         orig_i1 = max(0, orig_i1)
-#         orig_j1 = max(0, orig_j1)
-#         orig_i2 = min(orig_h - 1, orig_i2)
-#         orig_j2 = min(orig_w - 1, orig_j2)
-
-#         if orig_i1 > orig_i2:
-#             orig_i2 = orig_i1
-#         if orig_j1 > orig_j2:
-#             orig_j2 = orig_j1
-
-#         return orig_i1, orig_j1, orig_i2, orig_j2
-
-#     return compressed_img, map_region_to_original
-
-
 def compress_image(image, max_dimension=1024):
     """
     将单通道图像等比例压缩，确保最长边不超过指定尺寸。
@@ -428,8 +345,27 @@ def write_json(file_path, data):
     """
     将数据写入 JSON 文件
     """
+    def json_serializer(obj):
+        """自定义JSON序列化器，处理NumPy和pandas数据类型"""
+        if isinstance(obj, (np.integer, np.int8, np.int16, np.int32, np.int64,
+                           np.uint8, np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float16, np.float32, np.float64)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif hasattr(obj, 'to_json'):  # 处理pandas Series/DataFrame
+            return json.loads(obj.to_json())
+        elif hasattr(obj, 'to_dict'):  # 处理其他可转换为字典的对象
+            return obj.to_dict()
+        elif isinstance(obj, (set, tuple)):  # 处理集合和元组
+            return list(obj)
+        else:
+            raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
     with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+        json.dump(data, f, default=json_serializer, ensure_ascii=False, indent=4)
 def get_local_ip():
     """
     获取本机网络 IP 地址

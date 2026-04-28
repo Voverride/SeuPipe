@@ -12,6 +12,7 @@ import scanpy as sc
 import cachetools
 import shutil
 import bisect
+from dataManager.coordinate_d import ali_coordinate, ali_coordinateTime, ali_initfig
 
 class AlignmentData:
     def __init__(self, cleanup_interval=3600, ttl=3600):
@@ -22,9 +23,6 @@ class AlignmentData:
         self._export_project = cachetools.TTLCache(maxsize=200, ttl=1800)
         self._genelist = cachetools.TTLCache(maxsize=200, ttl=3600)
         self._fields = cachetools.TTLCache(maxsize=200, ttl=3600)
-        self._initfig = cachetools.TTLCache(maxsize=200, ttl=3600)
-        self._coordinate = {}
-        self._coordinateTime = {}
         self._cleanup_interval = cleanup_interval
         self._ttl = ttl
         self._stop_cleanup = False
@@ -45,7 +43,7 @@ class AlignmentData:
         """
         fields = self._fields.get(project, None)
         if fields is None:
-            coordinate = self._coordinate.get(project, None)
+            coordinate = ali_coordinate.get(project, None)
             if coordinate is None:
                 return []
             fields = coordinate.columns.tolist()
@@ -100,24 +98,25 @@ class AlignmentData:
         current_time = time.time()
         expired_keys = []
         
-        for project, store_time in list(self._coordinateTime.items()):
+        for project, store_time in list(ali_coordinateTime.items()):
             age = current_time - store_time
             if age > self._ttl:
                 expired_keys.append(project)
         
         for project in expired_keys:
-            coordinate = self._coordinate[project]
-            self.update_coordinate(project, coordinate)
-            del self._coordinate[project]
-            del self._coordinateTime[project] 
+            coordinate = ali_coordinate.get(project, None)
+            if coordinate is not None:
+                self.update_coordinate(project, coordinate)
+            del ali_coordinate[project]
+            del ali_coordinateTime[project] 
 
     def save_all_coordinates(self):
         """
         保存所有坐标到磁盘
         """
-        for key in list(self._coordinate.keys()):
-            if key in self._coordinate:
-                coordinate = self._coordinate[key]
+        for key in list(ali_coordinate.keys()):
+            if key in ali_coordinate:
+                coordinate = ali_coordinate[key]
                 self.update_coordinate(key, coordinate)
                 
     def is_project_modify(self, project):
@@ -271,12 +270,12 @@ class AlignmentData:
         project_folder = self.get_project_folder(project)
         if project in self._projects:
             del self._projects[project]
-        if project in self._coordinate:
-            del self._coordinate[project]
-        if project in self._coordinateTime:
-            del self._coordinateTime[project]
-        if project in self._initfig:
-            del self._initfig[project]
+        if project in ali_coordinate:
+            del ali_coordinate[project]
+        if project in ali_coordinateTime:
+            del ali_coordinateTime[project]
+        if project in ali_initfig:
+            del ali_initfig[project]
         if project in self._genelist:
             del self._genelist[project]
         if project in self._fields:
@@ -322,21 +321,21 @@ class AlignmentData:
         """
         获取对齐项目坐标
         """
-        if project in self._coordinate:
-            coordinate = self._coordinate[project]
+        if project in ali_coordinate:
+            coordinate = ali_coordinate[project]
         else:
             coordinate_path = self.get_coordinate_path(project)
             coordinate = pd.read_csv(coordinate_path, index_col=0)
-        self._coordinate[project] = coordinate
-        self._coordinateTime[project] = time.time()
+        ali_coordinate[project] = coordinate
+        ali_coordinateTime[project] = time.time()
         return coordinate
     
     def update_coordinate(self, project, coordinate):
         """
         更新对齐项目坐标
         """
-        self._coordinate[project] = coordinate
-        self._coordinateTime[project] = time.time()
+        ali_coordinate[project] = coordinate
+        ali_coordinateTime[project] = time.time()
         coordinate_path = self.get_coordinate_path(project)
         coordinate.to_csv(coordinate_path)
     
@@ -382,8 +381,8 @@ class AlignmentData:
         """
         获取初始数据可视化结果
         """
-        if project in self._initfig:
-            initialfig = self._initfig[project]
+        if project in ali_initfig:
+            initialfig = ali_initfig[project]
         else:
             initialfig_path = self.get_initialfig_path(project)
             if os.path.exists(initialfig_path):
@@ -393,7 +392,7 @@ class AlignmentData:
                     initialfig = None
             else:
                 initialfig = None
-        self._initfig[project] = initialfig
+        ali_initfig[project] = initialfig
         return initialfig
     
     def update_project_info(self, project_name: str, metadata: dict):
@@ -557,7 +556,7 @@ class AlignmentData:
             'top': {'x': 1.2149787566408422e-05, 'y': -0.006897060070669372, 'z': 2.1650525237080886},
             'center': {'x': 1.25, 'y': 1.25, 'z': 1.25}
         }
-        if not actSlice or not refSlice:
+        if actSlice is None or refSlice is None:
             return eye['center']
         if float(actSlice)>=float(refSlice):
             return eye['top']
